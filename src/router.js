@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const KoaRouter = require('@koa/router')
+const common = require('./common')
 const config = require('./config')
 const task = require('./task')
 
@@ -23,6 +24,32 @@ router.post('/apisix_acme/task_create', async (ctx, next) => {
     return
   }
   const result = await task.createTask(domain, mail)
+  ctx.body = result
+})
+
+// 修改服务绑定的host
+router.post('/apisix_acme/update_service_host', async (ctx, next) => {
+  const body = ctx.request.body || {}
+  const domain = body.domain
+  const type = body.type
+  const serviceList = body.serviceList
+
+  if (!domain || ['add', 'remove'].indexOf(type) === -1 || !Array.isArray(serviceList)) {
+    ctx.body = { code: 400, message: '参数校验失败' }
+    return
+  }
+
+  let result
+  try {
+    for (let i = 0; i < serviceList.length; i++) {
+      const service_name = serviceList[i]
+      await common.updateServiceHost(config.APISIX_HOST, config.APISIX_TOKEN, domain, service_name, type)
+    }
+    result = { code: 200, message: '成功' }
+  } catch (error) {
+    result = { code: 500, message: error.message || error }
+  }
+
   ctx.body = result
 })
 

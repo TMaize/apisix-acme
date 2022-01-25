@@ -209,8 +209,57 @@ async function createSSL(domain, email) {
   }
 }
 
+// 把 host 加到某个 service 下
+async function updateServiceHost(apisix_host, token, domain, serviceName, type) {
+  const resp1 = await axios.request({
+    method: 'GET',
+    headers: {
+      'X-API-KEY': token
+    },
+    url: `${apisix_host}/apisix/admin/services`
+  })
+  const nodes = resp1.data.node.nodes || []
+  let service
+  for (let i = 0; i < nodes.length; i++) {
+    const value = nodes[i].value
+    if (value.name === serviceName) {
+      service = value
+    }
+  }
+
+  if (!service) {
+    throw new Error(`service ${serviceName} not found`)
+  }
+
+  const hosts_old = service.hosts || []
+  const hosts_new = hosts_old.slice(0)
+
+  if (type === 'add' && hosts_new.indexOf(domain) === -1) {
+    hosts_new.push(domain)
+  }
+  if (type === 'remove' && hosts_old.indexOf(domain) !== -1) {
+    hosts_new.splice(hosts_new.indexOf(domain), 1)
+  }
+
+  if (hosts_new.length === hosts_old.length) {
+    return
+  }
+
+  await axios.request({
+    method: 'PATCH',
+    headers: {
+      'X-API-KEY': token
+    },
+    url: `${apisix_host}/apisix/admin/services/${service.id}`,
+    data: {
+      hosts: hosts_new.length === 0 ? ['block-ip-access.com'] : hosts_new
+    }
+  })
+}
+
 module.exports = {
   addSelfRoute,
+  updateServiceHost,
   removeVerifyRoute,
   listSSL,
   checkSSL,
