@@ -11,10 +11,10 @@
 2. 后台调用服务 `/apisix_acme/task_create`
 
    ```
-   POST { "domain": "example.com" }
+   POST { "domain": "example.com", "serviceList": [] }
    ```
 
-   成功后会自动将证书添加到 apisix
+   成功后会自动将证书添加到 apisix, 同时把域名加到指定的 service 中
 
 3. 后台轮询 `/apisix_acme/task_status`
 
@@ -26,13 +26,18 @@
 
 ## 安装
 
-推荐使用 docker 和 apisix 服务部署在一个网络内
+```sh
+chmod +x build.sh
+./build.sh build
+```
+
+推荐使用 docker-compose， 方便和 apisix 服务部署在一个网络内
 
 ```yaml
 services:
   # ...
   apisix-acme:
-    image: tmaize/apisix-acme:1.0.1
+    image: apisix-acme:1.0.3
     restart: always
     depends_on:
       - apisix
