@@ -31,7 +31,10 @@ async function listSSL(apisix_host, token) {
     url: `${apisix_host}/apisix/admin/ssl`
   })
   const { data } = resp
-  const nodes = (data.node || {}).nodes || []
+  if (!data.count) {
+    return []
+  }
+  const nodes = data.node.nodes
   const list = nodes.map(node => {
     const item = node.value || {}
     return {

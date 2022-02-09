@@ -1,6 +1,6 @@
 yarn
 
-image=tmaize/apisix-acme:1.0.1
+image=tmaize/apisix-acme:1.0.2
 docker build --no-cache --rm --tag ${image} .
 
 input=$1
