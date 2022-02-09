@@ -17,13 +17,14 @@ router.get('/apisix_acme/task_status', async (ctx, next) => {
 router.post('/apisix_acme/task_create', async (ctx, next) => {
   const body = ctx.request.body || {}
   const domain = body.domain
+  const serviceList = body.serviceList || []
   const mail = body.mail || config.ACME_MAIL
 
   if (!domain) {
     ctx.body = { code: 400, message: '参数缺少 domain' }
     return
   }
-  const result = await task.createTask(domain, mail)
+  const result = await task.createTask(domain, mail, serviceList)
   ctx.body = result
 })
 
@@ -42,8 +43,8 @@ router.post('/apisix_acme/update_service_host', async (ctx, next) => {
   let result
   try {
     for (let i = 0; i < serviceList.length; i++) {
-      const service_name = serviceList[i]
-      await common.updateServiceHost(config.APISIX_HOST, config.APISIX_TOKEN, domain, service_name, type)
+      const serviceName = serviceList[i]
+      await common.updateServiceHost(config.APISIX_HOST, config.APISIX_TOKEN, domain, serviceName, type)
     }
     result = { code: 200, message: '成功' }
   } catch (error) {

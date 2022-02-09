@@ -238,9 +238,11 @@ async function updateServiceHost(apisix_host, token, domain, serviceName, type) 
   const hosts_new = hosts_old.slice(0)
 
   if (type === 'add' && hosts_new.indexOf(domain) === -1) {
+    console.log('服务绑定域名', serviceName, domain)
     hosts_new.push(domain)
   }
   if (type === 'remove' && hosts_old.indexOf(domain) !== -1) {
+    console.log('服务移除域名', serviceName, domain)
     hosts_new.splice(hosts_new.indexOf(domain), 1)
   }
 
