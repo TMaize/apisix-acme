@@ -4,20 +4,33 @@ const path = require('path')
 const moment = require('moment')
 const child_process = require('child_process')
 
+const config = require('./config')
+
 async function execShell(cmd, options) {
   const arr = cmd.split(' ').filter(item => item != '')
   const [bin, ...args] = arr
   return new Promise((resolve, reject) => {
     const task = child_process.spawn(bin, args, options)
+    let output = ''
     task.on('close', code => {
       if (code === 0) {
-        resolve()
+        resolve({ code, output })
       } else {
-        reject(new Error(`${cmd} failed with code ${code}`))
+        reject({ code, output, error: new Error(`execShell return ${code}`) })
       }
     })
+    task.stdout.on('data', buf => {
+      const str = buf.toString() //iconv.decode(buf, 'gbk')
+      output += str
+      process.stdout.write(str)
+    })
+    task.stderr.on('data', buf => {
+      const str = buf.toString() //iconv.decode(buf, 'gbk')
+      output += str
+      process.stderr.write(str)
+    })
     task.on('error', err => {
-      reject(err)
+      reject({ code: '', output, error: err })
     })
   })
 }
@@ -62,11 +75,13 @@ async function checkSSL(apisix_host, token, domain) {
       break
     }
   }
+  console.log('检查证书', domain, JSON.stringify(result))
   return result
 }
 
 // 添加 acme.sh 验证路由
 async function addVerifyRoute(apisix_host, token, domain, self_host) {
+  console.log('添加验证路由', domain)
   const id = `acme_verify_${domain}`
   await axios.request({
     method: 'PUT',
@@ -113,6 +128,7 @@ async function addVerifyRoute(apisix_host, token, domain, self_host) {
 
 // 删除 acme.sh 验证路由
 async function removeVerifyRoute(apisix_host, token, domain) {
+  console.log('删除验证路由', domain)
   const id = `acme_verify_${domain}`
   await axios.request({
     method: 'DELETE',
@@ -124,49 +140,63 @@ async function removeVerifyRoute(apisix_host, token, domain) {
 }
 
 // 把自己注册到 apisix
-async function addSelfRoute(apisix_host, token, self_host) {
-  const id = `apisix_acme`
-  await axios.request({
-    method: 'PUT',
-    headers: {
-      'X-API-KEY': token
-    },
-    url: `${apisix_host}/apisix/admin/routes/${id}`,
-    data: {
-      uri: '/apisix_acme/*',
-      name: id,
-      methods: ['GET', 'POST', 'OPTIONS', 'HEAD'],
-      // host: domain,
-      plugins: {
-        'proxy-rewrite': {
-          scheme: 'http'
-        }
+async function addSelfRoute() {
+  async function add() {
+    const id = `apisix_acme`
+    await axios.request({
+      method: 'PUT',
+      headers: {
+        'X-API-KEY': config.APISIX_TOKEN
       },
-      upstream: {
-        nodes: [
-          {
-            host: new URL(self_host).hostname,
-            port: Number(new URL(self_host).port) || 80,
-            weight: 1
+      url: `${config.APISIX_HOST}/apisix/admin/routes/${id}`,
+      data: {
+        uri: '/apisix_acme/*',
+        name: id,
+        methods: ['GET', 'POST', 'OPTIONS', 'HEAD'],
+        // host: domain,
+        plugins: {
+          'proxy-rewrite': {
+            scheme: 'http'
           }
-        ],
-        timeout: {
-          connect: 100,
-          send: 100,
-          read: 100
         },
-        type: 'roundrobin',
-        scheme: 'http',
-        pass_host: 'pass',
-        keepalive_pool: {
-          idle_timeout: 60,
-          requests: 1000,
-          size: 320
-        }
-      },
-      status: 1
+        upstream: {
+          nodes: [
+            {
+              host: new URL(config.SELF_APISIX_HOST).hostname,
+              port: Number(new URL(config.SELF_APISIX_HOST).port) || 80,
+              weight: 1
+            }
+          ],
+          timeout: {
+            connect: 100,
+            send: 100,
+            read: 100
+          },
+          type: 'roundrobin',
+          scheme: 'http',
+          pass_host: 'pass',
+          keepalive_pool: {
+            idle_timeout: 60,
+            requests: 1000,
+            size: 320
+          }
+        },
+        status: 1
+      }
+    })
+  }
+
+  for (let i = 1; i <= 5; i++) {
+    try {
+      await add()
+      console.log('addSelfRoute success')
+      break
+    } catch (error) {
+      if (i > 1) console.error('addSelfRoute fail:', error.message || error)
+      if (i == 5) sendMsg(`addSelfRoute fail: ${error.message || error}`)
     }
-  })
+    await new Promise(resolve => setTimeout(resolve, 5000))
+  }
 }
 
 // 导入证书
@@ -182,17 +212,8 @@ async function applySSL(apisix_host, token, sslInfo) {
   })
 }
 
-async function createSSL(domain, email) {
-  const options = { cwd: path.join(__dirname, 'acme.sh-master'), stdio: 'inherit' }
-
-  const web_root = path.join(__dirname, 'www')
-  const ssl_key = path.join(__dirname, 'out', `${domain}.key`)
-  const ssl_cer = path.join(__dirname, 'out', `${domain}.cer`)
-
-  // await execShell('sh acme.sh --set-default-ca --server letsencrypt', options)
-  await execShell(`sh acme.sh --issue -m ${email} --server letsencrypt -d ${domain} -w ${web_root}`, options)
-  await execShell(`sh acme.sh --install-cert -d ${domain}  --key-file ${ssl_key} --fullchain-file ${ssl_cer}`, options)
-
+// 解析证书文件
+function parseCA(ssl_cer, ssl_key) {
   const data = child_process.execSync(`openssl x509 -text -noout -in ${ssl_cer}`, { encoding: 'utf8' })
   const snis = /DNS:.+/
     .exec(data)[0]
@@ -202,14 +223,49 @@ async function createSSL(domain, email) {
 
   const start_time = /Not\sBefore.*:\s(.+)/.exec(data)[1].replace('GMT', '').trim()
   const end_time = /Not\sAfter.*:\s(.+)/.exec(data)[1].replace('GMT', '').trim()
+  const validity_start = moment.utc(start_time, 'MMM DD HH:mm:ss YYYY').unix()
+  const validity_end = moment.utc(end_time, 'MMM DD HH:mm:ss YYYY').unix()
 
   return {
     snis,
     cert: fs.readFileSync(ssl_cer, 'utf8'),
     key: fs.readFileSync(ssl_key, 'utf8'),
-    validity_start: moment.utc(start_time, 'MMM DD HH:mm:ss YYYY').unix(),
-    validity_end: moment.utc(end_time, 'MMM DD HH:mm:ss YYYY').unix()
+    validity_start,
+    validity_end
   }
+}
+
+async function createSSL(domain, email) {
+  const web_root = path.join(__dirname, 'www')
+  const ssl_key = path.join(__dirname, 'out', `${domain}.key`)
+  const ssl_cer = path.join(__dirname, 'out', `${domain}.cer`)
+
+  if (fs.existsSync(ssl_cer)) {
+    const info = parseCA(ssl_cer, ssl_key)
+    if (info.validity_end - parseInt(Date.now() / 1000) >= config.RENEW_LESS) {
+      const end_date = moment(info.validity_end * 1000).format('YYYY-MM-DD HH:mm:ss')
+      const day = parseInt((info.validity_end - parseInt(Date.now() / 1000)) / 86400)
+      sendMsg(`使用本地缓存证书: ${domain}\n\n过期时间: ${end_date}\n\n剩余: ${day}天`)
+      return info
+    }
+  }
+
+  const options = { cwd: path.join(__dirname, 'acme.sh-master'), timeout: 1000 * 90 }
+
+  await execShell(`sh acme.sh --issue --force -m ${email} --server letsencrypt -d ${domain} -w ${web_root}`, options).catch(data => {
+    const error = data.error
+    sendMsg(`创建证书失败 ${domain} \n\n` + '```\n' + data.output + '\n```')
+    return Promise.reject(error)
+  })
+
+  await execShell(`sh acme.sh --install-cert -d ${domain}  --key-file ${ssl_key} --fullchain-file ${ssl_cer}`, options)
+
+  const info = parseCA(ssl_cer, ssl_key)
+  const end_date = moment(info.validity_end * 1000).format('YYYY-MM-DD HH:mm:ss')
+  const day = parseInt((info.validity_end - parseInt(Date.now() / 1000)) / 86400)
+  sendMsg(`创建证书成功: ${domain}\n\n过期时间: ${end_date}\n\n剩余: ${day}天`)
+
+  return info
 }
 
 // 把 host 加到某个 service 下
@@ -262,13 +318,32 @@ async function updateServiceHost(apisix_host, token, domain, serviceName, type) 
   })
 }
 
+async function sendMsg(text) {
+  if (!config.DING_DING_TOKEN) return
+  return axios({
+    method: 'POST',
+    url: 'https://oapi.dingtalk.com/robot/send',
+    params: { access_token: config.DING_DING_TOKEN },
+    data: {
+      msgtype: 'markdown',
+      markdown: {
+        title: '事件提醒',
+        text: '## apisix-acme\n\n---\n\n' + text
+      }
+    }
+  }).catch(err => {
+    console.error('发送消息失败', err.message)
+  })
+}
+
 module.exports = {
   addSelfRoute,
+  addVerifyRoute,
   updateServiceHost,
   removeVerifyRoute,
   listSSL,
   checkSSL,
-  addVerifyRoute,
   createSSL,
-  applySSL
+  applySSL,
+  sendMsg
 }

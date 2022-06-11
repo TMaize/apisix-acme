@@ -9,8 +9,13 @@ const router = new KoaRouter()
 
 // 查询任务
 router.get('/apisix_acme/task_status', async (ctx, next) => {
-  const id = ctx.query.id
-  ctx.body = { code: 200, data: task.queryTask(id) }
+  const domain = ctx.query.domain
+  if (!domain) {
+    ctx.body = { code: 400, message: 'domain is required' }
+    return
+  }
+  const status = await task.queryTask(domain)
+  ctx.body = { code: 200, data: status }
 })
 
 // 创建任务
@@ -21,43 +26,21 @@ router.post('/apisix_acme/task_create', async (ctx, next) => {
   const mail = body.mail || config.ACME_MAIL
 
   if (!domain) {
-    ctx.body = { code: 400, message: '参数缺少 domain' }
+    ctx.body = { code: 400, message: 'domain is required' }
     return
   }
   const result = await task.createTask(domain, mail, serviceList)
   ctx.body = result
 })
 
-// 修改服务绑定的host
-router.post('/apisix_acme/update_service_host', async (ctx, next) => {
-  const body = ctx.request.body || {}
-  const domain = body.domain
-  const type = body.type
-  const serviceList = body.serviceList
-
-  if (!domain || ['add', 'remove'].indexOf(type) === -1 || !Array.isArray(serviceList)) {
-    ctx.body = { code: 400, message: '参数校验失败' }
-    return
-  }
-
-  let result
-  try {
-    for (let i = 0; i < serviceList.length; i++) {
-      const serviceName = serviceList[i]
-      await common.updateServiceHost(config.APISIX_HOST, config.APISIX_TOKEN, domain, serviceName, type)
-    }
-    result = { code: 200, message: '成功' }
-  } catch (error) {
-    result = { code: 500, message: error.message || error }
-  }
-
-  ctx.body = result
-})
-
 // acme text verify
 // 主要是处理 /.well-known/acme-challenge/random 这个请求
 router.get('(.*)', (ctx, next) => {
-  const file = ctx.params[0]
+  let file = ctx.params[0]
+  if (file.startsWith('/apisix_acme')) {
+    file = file.substring('/apisix_acme'.length)
+  }
+
   const filePath = path.join(__dirname, 'www', file)
 
   if (!fs.existsSync(filePath)) {

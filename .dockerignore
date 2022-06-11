@@ -1,5 +1,6 @@
 .git
 .dockerignore
+node_modules
 build.sh
 dev.sh
 Dockerfile

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>APISIX ACME TOOL</title>
+    <style>
+      form {
+        display: inline-block;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5em;
+      }
+      label span {
+        display: inline-block;
+        width: 100px;
+      }
+      label input {
+        display: inline-block;
+        width: 400px;
+      }
+      ul {
+        display: inline-block;
+        margin: 0;
+        vertical-align: top;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <form @submit.prevent="submit">
+        <label>
+          <span>URL</span>
+          <input type="text" required v-model="state.url" />
+        </label>
+        <label>
+          <span>Verify Token</span>
+          <input type="text" required v-model="state.verifyToken" />
+        </label>
+        <label>
+          <span>Domain</span>
+          <input type="text" required v-model="state.domain" />
+        </label>
+        <label>
+          <span>ACME Mail</span>
+          <input type="text" v-model="state.acmeMail" />
+        </label>
+        <input type="submit" :value="state.loading?'请求中':'提交'" :disabled="state.loading" />
+      </form>
+      <ul>
+        <li v-for="item in state.result">{{item}}</li>
+      </ul>
+    </div>
+    <script type="module">
+      import { createApp, reactive } from 'https://unpkg.com/vue@3.2.37/dist/vue.esm-browser.prod.js'
+      import { default as axios } from 'https://esm.sh/axios@0.27.2'
+      console.log(axios)
+      const app = createApp({
+        setup() {
+          const state = reactive({
+            loading: false,
+            url: location.origin + '/apisix_acme/task_create',
+            verifyToken: 'custom_token',
+            domain: '',
+            acmeMail: '',
+            result: ['等待提交']
+          })
+
+          const submit = async () => {
+            state.loading = true
+            await axios
+              .request({
+                method: 'POST',
+                url: state.url,
+                headers: {
+                  'VERIFY-TOKEN': state.verifyToken
+                },
+                data: {
+                  domain: state.domain,
+                  mail: state.acmeMail
+                }
+              })
+              .then(res => {
+                state.result.push(JSON.stringify(res.data))
+              })
+              .catch(err => {
+                state.result.push(err.message)
+              })
+            state.loading = false
+          }
+          return { state, submit }
+        }
+      }).mount('#app')
+    </script>
+  </body>
+</html>

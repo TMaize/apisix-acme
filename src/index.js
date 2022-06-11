@@ -13,36 +13,38 @@ app.use(async (ctx, next) => {
   ctx.set('Access-Control-Allow-Methods', '*')
   ctx.set('Access-Control-Allow-Credentials', 'true')
   ctx.set('Access-Control-Expose-Headers', 'Content-Disposition')
-  ctx.set('Access-Control-Allow-Headers', 'Content-Type,X-CSRF-Token,Authorization,Token')
+  ctx.set('Access-Control-Allow-Headers', 'Content-Type,X-CSRF-Token,Authorization,Token,Check-Token')
   ctx.set('Access-Control-Max-Age', '60')
 
   if (ctx.method === 'OPTIONS') {
-    ctx.status = 200
-  } else {
+    ctx.status = 204
+    return
+  }
+
+  const verifyToken = ctx.header.verify_token || ctx.header['verify-token']
+  if (ctx.path == '/apisix_acme/task_create' && config.VERIFY_TOKEN && verifyToken != config.VERIFY_TOKEN) {
+    ctx.body = { code: 401, message: 'invalid verify_token' }
+    return
+  }
+
+  try {
     await next()
+  } catch (error) {
+    const message = error.message || error
+    ctx.body = { code: 500, message }
+    common.sendMsg(`系统异常: ${message}\n\n` + '```\n' + error.stack + '\n```')
   }
 })
 
 app.use(koaBody({}))
 app.use(router.routes())
 
-function addSelfRoute(delay) {
-  setTimeout(async () => {
-    try {
-      await common.addSelfRoute(config.APISIX_HOST, config.APISIX_TOKEN, config.SELF_APISIX_HOST)
-      console.log('addSelfRoute success')
-    } catch (error) {
-      console.log('addSelfRoute fail:', error.message || error)
-    }
-  }, delay)
-}
-
 // start
-app.listen(80)
+app.listen(config.PORT)
+console.log('app listen on', config.PORT)
 
-// 把自己注册到 apisix，用于调用创建接口
-addSelfRoute(3000)
-addSelfRoute(10000)
+// 把自己注册到 apisix
+common.addSelfRoute()
 
-// 每天凌晨，自动续期将要过期的证书
+// 自动续期将要过期的证书
 task.scheduleTask()

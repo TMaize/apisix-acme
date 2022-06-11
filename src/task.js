@@ -2,32 +2,41 @@ const schedule = require('node-schedule')
 const config = require('./config')
 const common = require('./common')
 
-const taskList = [] // id domain running error
+// domain
+// error
+// status: running-申请中 error-错误 success-成功
+const taskMap = {}
 
-function queryTask(id) {
-  const task = taskList.find(item => String(item.id) === String(id))
-  return task
+async function queryTask(domain) {
+  let task = taskMap[domain]
+  if (task) return task
+  const result = await common.checkSSL(config.APISIX_HOST, config.APISIX_TOKEN, domain)
+  if (!result.id) {
+    return { domain, status: 'error', error: '域名不存在' }
+  }
+  return { domain, status: 'success', validity_end: result.validity_end }
 }
 
 async function createTask(domain, mail, serviceList) {
-  let task = taskList.find(item => item.domain === domain && item.running) // 正在运行中的任务
-  if (task) {
-    return { code: 200, message: '任务执行中，等待片刻', data: { status: 1, domain, taskId: task.id } }
+  let task = taskMap[domain]
+
+  if (task && task.status === 'running') {
+    return { code: 200, message: '证书申请中，等待片刻', data: { status: 'running', domain } }
   }
 
   const result = await common.checkSSL(config.APISIX_HOST, config.APISIX_TOKEN, domain)
   const left_seconds = result.validity_end - parseInt(Date.now() / 1000)
-  if (left_seconds > 604800) {
-    return { code: 200, message: '证书已存在且未过期，跳过操作', data: { status: 0, domain } }
+  if (left_seconds > config.RENEW_LESS) {
+    return { code: 200, message: '证书已存在且未过期，跳过操作', data: { status: 'skip', domain } }
   }
 
   task = {
-    id: Date.now(),
-    running: true,
+    status: 'running',
     domain: domain,
-    serviceList: serviceList
+    error: ''
   }
-  taskList.push(task)
+
+  taskMap[domain] = task
 
   async function doTask() {
     let err = ''
@@ -45,24 +54,28 @@ async function createTask(domain, mail, serviceList) {
       }
     } catch (error) {
       err = error.message || error
+      common.sendMsg(`系统异常: ${err}\n\n` + '```\n' + error.stack + '\n```')
     }
-    task.running = false
-    task.error = err
-    console.log('任务完成', JSON.stringify(task))
+
+    if (err) {
+      task.status = 'error'
+      task.error = err
+    } else {
+      task.status = 'success'
+      task.error = ''
+    }
   }
 
   doTask() // async function
 
-  return { code: 200, message: '任务已提交，等待片刻', data: { status: 2, domain, taskId: task.id } }
+  return { code: 200, message: '任务已提交，等待片刻', data: { status: 'created', domain } }
 }
 
 async function renewAll() {
   const list = await common.listSSL(config.APISIX_HOST, config.APISIX_TOKEN)
   list.forEach(item => {
     if (String(item.id).match(/^acme_/)) {
-      createTask(item.snis[0], config.ACME_MAIL).then(result => {
-        console.log(JSON.stringify(result))
-      })
+      createTask(item.snis[0], config.ACME_MAIL)
     }
   })
 }

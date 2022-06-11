@@ -6,49 +6,84 @@
 
 ## 步骤
 
-1. 用户主动解析域名到 apisix 服务器
+1. 域名解析到 apisix 服务器
 
-2. 后台调用服务 `/apisix_acme/task_create`
+2. 调用服务 `http://${apisix-server}/apisix_acme/task_create` 自动创建证书
 
-   ```
-   POST { "domain": "example.com", "serviceList": [] }
-   ```
-
-   成功后会自动将证书添加到 apisix, 同时把域名加到指定的 service 中
-
-3. 后台轮询 `/apisix_acme/task_status`
-
-   ```
-   GET ?id=xxxx
-   ```
-
-4. 每天凌晨会自动检查 7 天内过期证书自动重新申请
+3. 每天凌晨会自动检查 14 天内即将过期证书并自动重新申请
 
 ## 安装
 
-```sh
-chmod +x build.sh
-./build.sh build
-```
-
-推荐使用 docker-compose， 方便和 apisix 服务部署在一个网络内
+可以直接使用`tmaize/apisix-acme`镜像，或者本地构建`./build.sh build`
 
 ```yaml
 services:
   # ...
   apisix-acme:
-    image: apisix-acme:1.0.3
+    image: apisix-acme:1.0.5
     restart: always
     depends_on:
       - apisix
+    volumes:
+      - ./apisix_acme_out:/app/src/out
     environment:
-      - APISIX_HOST=http://apisix:9080
-      - APISIX_TOKEN=xxxxxxxxxxxxxxxxxxxxxxx
+      - TZ=Asia/Shanghai
+      - VERIFY_TOKEN=custom_token
       - SELF_APISIX_HOST=http://apisix-acme:80
-      - ACME_MAIL=test@qq.com
+      - APISIX_HOST=http://apisix:9080
+      - APISIX_TOKEN=xxxxxxxxxx
+      - ACME_MAIL=mail@example.com
+      - DING_DING_TOKEN=xxxxxxxxxx
     networks:
       apisix:
 ```
+
+## API
+
+- 新增、更新证书 `/apisix_acme/task_create`
+
+  domain 必填，serviceList、mail 可选
+
+  ```
+  POST { "domain": "example.com", "serviceList": [], "mail": "" }
+  HEADER {VERIFY-TOKEN: xxxxxxxxxx}
+  ```
+
+  响应
+
+  ```json
+  { "code": 200, "message": "证书已存在且未过期，跳过操作", "data": { "status": "skip", "domain": "example.com" } }
+  ```
+
+  ```json
+  { "code": 200, "message": "证书申请中，等待片刻", "data": { "status": "running", "domain": "example.com" } }
+  ```
+
+  ```json
+  { "code": 200, "message": "任务已提交，等待片刻", "data": { "status": "created", "domain": "example.com" } }
+  ```
+
+- 查询任务 `/apisix_acme/task_status`
+
+  请求
+
+  ```
+  GET ?domain=example.com
+  ```
+
+  响应
+
+  ```json
+  { "code": 200, "data": { "status": "error", "domain": "example.com", "error": "域名不存在" } }
+  ```
+
+  ```json
+  { "code": 200, "data": { "status": "running", "domain": "example.com" } }
+  ```
+
+  ```json
+  { "code": 200, "data": { "status": "success", "domain": "example.com" } }
+  ```
 
 ## Acknowledgments
 
