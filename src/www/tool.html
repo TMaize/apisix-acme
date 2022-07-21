@@ -53,10 +53,9 @@
         <li v-for="item in state.result">{{item}}</li>
       </ul>
     </div>
+    <script src="https://cdn.staticfile.org/axios/0.27.2/axios.min.js"></script>
     <script type="module">
-      import { createApp, reactive } from 'https://unpkg.com/vue@3.2.37/dist/vue.esm-browser.prod.js'
-      import { default as axios } from 'https://esm.sh/axios@0.27.2'
-      console.log(axios)
+      import { createApp, reactive } from 'https://cdn.staticfile.org/vue/3.2.37/vue.esm-browser.prod.js'
       const app = createApp({
         setup() {
           const state = reactive({
