@@ -61,8 +61,8 @@
           const state = reactive({
             loading: false,
             url: location.origin + '/apisix_acme/task_create',
-            verifyToken: 'custom_token',
-            domain: '',
+            verifyToken: 'your token',
+            domain: location.hostname,
             acmeMail: '',
             result: ['等待提交']
           })

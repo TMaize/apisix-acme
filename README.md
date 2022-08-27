@@ -14,13 +14,13 @@
 
 ## 安装
 
-可以直接使用`tmaize/apisix-acme`镜像，或者本地构建`./build.sh build`
+可以直接使用 [tmaize/apisix-acme](https://hub.docker.com/r/tmaize/apisix-acme) 镜像，或者本地构建`./build.sh build`
 
 ```yaml
 services:
   # ...
   apisix-acme:
-    image: apisix-acme:1.0.5
+    image: apisix-acme:1.0.7
     restart: always
     depends_on:
       - apisix
@@ -42,7 +42,7 @@ services:
 
 - 新增、更新证书 `/apisix_acme/task_create`
 
-  domain 必填，serviceList、mail 可选
+  domain 必填，serviceList、mail 可选，VERIFY-TOKEN 可选
 
   ```
   POST { "domain": "example.com", "serviceList": [], "mail": "" }
@@ -84,6 +84,10 @@ services:
   ```json
   { "code": 200, "data": { "status": "success", "domain": "example.com" } }
   ```
+
+- 测试页面 `/apisix_acme/tool.html`
+
+  仅在设置了 VERIFY_TOKEN 时开启
 
 ## Acknowledgments
 

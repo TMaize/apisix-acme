@@ -186,14 +186,17 @@ async function addSelfRoute() {
     })
   }
 
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 6; i++) {
     try {
       await add()
       console.log('addSelfRoute success')
       break
     } catch (error) {
-      if (i > 1) console.error('addSelfRoute fail:', error.message || error)
-      if (i == 5) sendMsg(`addSelfRoute fail: ${error.message || error}`)
+      if (i > 1) console.error('addSelfRoute fail:', error.message || error, 'retrying ...')
+      if (i == 6) {
+        sendMsg(`addSelfRoute fail: ${error.message || error}`)
+        return Promise.reject(new Error('addSelfRoute fail: ' + error.message || error))
+      }
     }
     await new Promise(resolve => setTimeout(resolve, 5000))
   }
@@ -335,6 +338,11 @@ async function sendMsg(text) {
     console.error('发送消息失败', err.message)
   })
 }
+async function sleep(ms) {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, ms)
+  })
+}
 
 module.exports = {
   addSelfRoute,
@@ -345,5 +353,6 @@ module.exports = {
   checkSSL,
   createSSL,
   applySSL,
-  sendMsg
+  sendMsg,
+  sleep
 }
