@@ -2,11 +2,9 @@ const schedule = require('node-schedule')
 const config = require('./config')
 const common = require('./common')
 
-// domain
-// mail
-// serviceList
-// error
-// status: running-申请中 error-错误 success-成功
+// {"status":"running", domain, mail, serviceList, error}
+// {"status":"error", domain, mail, serviceList, error}
+// {"status":"success", domain, validity_end}
 const taskList = []
 let taskLock = false
 
@@ -14,15 +12,17 @@ async function queryTask(domain) {
   const task = taskList.find(item => item.domain === domain)
   if (task) return task
 
-  const result = await common.checkSSL(config.APISIX_HOST, config.APISIX_TOKEN, domain)
-  if (!result.id) {
+  const result = await common.listSSL(config.APISIX_HOST, config.APISIX_TOKEN, true)
+  const info = result.find(item => item.domain == domain)
+  if (!info) {
     return { domain, status: 'error', error: '域名不存在' }
   }
-  return { domain, status: 'success', validity_end: result.validity_end }
+  return { domain, status: 'success', validity_end: info.validity_end }
 }
 
 async function createTask(domain, mail, serviceList) {
   const task = await queryTask(domain)
+  console.log('检查证书', JSON.stringify(task))
 
   if (task.status === 'running') {
     return { code: 200, message: '证书申请中，等待片刻', data: { status: 'running', domain } }
@@ -69,7 +69,7 @@ async function doTask() {
     try {
       await common.addVerifyRoute(config.APISIX_HOST, config.APISIX_TOKEN, domain, config.SELF_APISIX_HOST)
       const sslInfo = await common.createSSL(domain, mail)
-      await common.applySSL(config.APISIX_HOST, config.APISIX_TOKEN, sslInfo)
+      await common.applySSL(config.APISIX_HOST, config.APISIX_TOKEN, domain, sslInfo)
       if (Array.isArray(serviceList) && serviceList.length > 0) {
         for (let i = 0; i < serviceList.length; i++) {
           const serviceName = serviceList[i]
@@ -91,10 +91,10 @@ async function doTask() {
 }
 
 async function renewAll() {
-  const list = await common.listSSL(config.APISIX_HOST, config.APISIX_TOKEN)
+  const list = await common.listSSL(config.APISIX_HOST, config.APISIX_TOKEN, true)
   for (let i = 0; i < list.length; i++) {
     const item = list[i]
-    await createTask(item.snis[0], config.ACME_MAIL).catch(err => {})
+    await createTask(item.domain, config.ACME_MAIL).catch(err => {})
   }
 }
 

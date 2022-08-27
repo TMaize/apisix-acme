@@ -6,6 +6,8 @@ const ACME_MAIL = process.env.ACME_MAIL || '' // default acme mail
 const SELF_APISIX_HOST = process.env.SELF_APISIX_HOST || 'http://apisix-acme:80' // 注册到 apisix 的 host
 const DING_DING_TOKEN = process.env.DING_DING_TOKEN || '' // 钉钉通知关键词: 事件提醒
 
+const S_DAY = 24 * 60 * 60
+
 module.exports = {
   PORT,
   VERIFY_TOKEN,
@@ -14,5 +16,5 @@ module.exports = {
   SELF_APISIX_HOST,
   ACME_MAIL,
   DING_DING_TOKEN,
-  RENEW_LESS: 24 * 60 * 60 * 7 * 2
+  RENEW_LESS:  S_DAY * 14
 }

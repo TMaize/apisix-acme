@@ -35,48 +35,44 @@ async function execShell(cmd, options) {
   })
 }
 
-async function listSSL(apisix_host, token) {
+async function listSSL(apisix_host, token, unique) {
   const resp = await axios.request({
     method: 'GET',
-    headers: {
-      'X-API-KEY': token
-    },
+    headers: { 'X-API-KEY': token },
     url: `${apisix_host}/apisix/admin/ssl`
   })
   const { data } = resp
-  if (!data.count) {
-    return []
-  }
-  const nodes = data.node.nodes
-  const list = nodes.map(node => {
+  if (!data.count) return []
+
+  const nodes = data.node.nodes || []
+  const list = []
+
+  nodes.forEach(node => {
     const item = node.value || {}
-    return {
+    // 仅支持单域名
+    if (!item.snis || item.snis.length > 1) return
+
+    const info = {
       id: item.id,
-      snis: item.snis || [],
+      domain: item.snis[0],
       validity_start: item.validity_start,
       validity_end: item.validity_end
     }
+
+    if (unique) {
+      const idx = list.findIndex(o => o.domain === info.domain)
+      if (idx == -1) {
+        list.push(info)
+      }
+      // 取即将过期的域名
+      if (idx != -1 && list[idx].validity_end > info.validity_end) {
+        list.splice(idx, 1, info)
+      }
+    } else {
+      list.push(info)
+    }
   })
   return list
-}
-
-// 检查证书过期时间，若不存在 id 为空
-async function checkSSL(apisix_host, token, domain) {
-  let result = {
-    id: '',
-    validity_end: 0
-  }
-  const list = await listSSL(apisix_host, token)
-  for (let i = 0; i < list.length; i++) {
-    const item = list[i]
-    if (item.snis.includes(domain)) {
-      result.id = item.id
-      result.validity_end = item.validity_end
-      break
-    }
-  }
-  console.log('检查证书', domain, JSON.stringify(result))
-  return result
 }
 
 // 添加 acme.sh 验证路由
@@ -189,7 +185,6 @@ async function addSelfRoute() {
   for (let i = 1; i <= 6; i++) {
     try {
       await add()
-      console.log('addSelfRoute success')
       break
     } catch (error) {
       if (i > 1) console.error('addSelfRoute fail:', error.message || error, 'retrying ...')
@@ -203,16 +198,20 @@ async function addSelfRoute() {
 }
 
 // 导入证书
-async function applySSL(apisix_host, token, sslInfo) {
-  const id = 'acme_' + sslInfo.snis.join('_')
-  await axios.request({
-    method: 'PUT',
-    headers: {
-      'X-API-KEY': token
-    },
-    url: `${apisix_host}/apisix/admin/ssl/${id}`,
-    data: sslInfo
-  })
+async function applySSL(apisix_host, token, domain, sslInfo) {
+  const all = await listSSL(apisix_host, token, false)
+  const idList = all.filter(item => item.domain == domain).map(item => item.id)
+  if (idList.length == 0) idList.push(String(Date.now()))
+
+  for (let i = 0; i < idList.length; i++) {
+    const id = idList[i]
+    await axios.request({
+      method: 'PUT',
+      headers: { 'X-API-KEY': token },
+      url: `${apisix_host}/apisix/admin/ssl/${id}`,
+      data: sslInfo
+    })
+  }
 }
 
 // 解析证书文件
@@ -350,7 +349,6 @@ module.exports = {
   updateServiceHost,
   removeVerifyRoute,
   listSSL,
-  checkSSL,
   createSSL,
   applySSL,
   sendMsg,

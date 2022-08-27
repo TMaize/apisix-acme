@@ -36,7 +36,7 @@ app.use(router.routes())
 
 async function start() {
   return new Promise(function (resolve, reject) {
-    const server = app.listen(config.PORT)
+    const server = app.listen(config.PORT, '0.0.0.0')
     server.on('error', reject)
     server.on('listening', function () {
       console.log('server start success:', server.address())
