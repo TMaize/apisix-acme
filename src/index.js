@@ -4,6 +4,7 @@ const task = require('./task')
 
 async function main() {
   try {
+    common.setupConsole()
     await server.start()
     await common.addSelfRoute()
     task.scheduleTask()

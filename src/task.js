@@ -1,4 +1,6 @@
 const schedule = require('node-schedule')
+const moment = require('moment')
+
 const config = require('./config')
 const common = require('./common')
 
@@ -22,7 +24,10 @@ async function queryTask(domain) {
 
 async function createTask(domain, mail, serviceList) {
   const task = await queryTask(domain)
-  console.log('检查证书', JSON.stringify(task))
+
+  const temp = { ...task }
+  if (temp.validity_end) temp.validity_end = moment(temp.validity_end * 1000).format('YYYY-MM-DD HH:mm:ss')
+  console.log('检查证书', JSON.stringify(temp))
 
   if (task.status === 'running') {
     return { code: 200, message: '证书申请中，等待片刻', data: { status: 'running', domain } }
@@ -81,7 +86,7 @@ async function doTask() {
     } catch (err) {
       task.status = 'error'
       task.error = err.message || err
-      console.log('申请失败', domain)
+      console.error('申请失败', domain)
       common.sendMsg(`系统异常: ${task.error}\n\n` + '```\n' + err.stack + '\n```')
     } finally {
       common.removeVerifyRoute(config.APISIX_HOST, config.APISIX_TOKEN, domain).catch(() => {})

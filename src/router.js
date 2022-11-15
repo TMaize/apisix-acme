@@ -42,23 +42,10 @@ router.post('/apisix_acme/task_create', async (ctx, next) => {
   ctx.body = result
 })
 
-// 工具页面
-router.get('/apisix_acme/tool.html', async (ctx, next) => {
-  ctx.type = 'html'
-  if (!config.VERIFY_TOKEN) {
-    ctx.body = 'The tool page is only available when the VERIFY_TOKEN is enabled'
-  } else {
-    ctx.body = fs.readFileSync(path.resolve(__dirname, 'tool.html'), 'utf-8')
-  }
-})
-
 // acme text verify
 // 主要是处理 /.well-known/acme-challenge/random 这个请求
 router.get('(.*)', (ctx, next) => {
   let file = ctx.params[0]
-  if (file.startsWith('/apisix_acme')) {
-    file = file.substring('/apisix_acme'.length)
-  }
 
   const filePath = path.join(__dirname, 'www', file)
 

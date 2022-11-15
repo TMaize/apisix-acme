@@ -10,7 +10,7 @@
 
 2. 调用服务 `http://${apisix-server}/apisix_acme/task_create` 自动创建证书
 
-3. 每天凌晨会自动检查 14 天内即将过期证书并自动重新申请
+3. 每天凌晨会自动检查 30 天内即将过期证书并自动重新申请
 
 ## 安装
 
@@ -20,7 +20,7 @@
 services:
   # ...
   apisix-acme:
-    image: apisix-acme:1.0.8
+    image: apisix-acme:1.0.9
     restart: always
     depends_on:
       - apisix
@@ -85,9 +85,7 @@ services:
   { "code": 200, "data": { "status": "success", "domain": "example.com" } }
   ```
 
-- 测试页面 `/apisix_acme/tool.html`
-
-  仅在设置了 VERIFY_TOKEN 时开启
+- 工具页面 `/apisix_acme/tool.html`
 
 ## Acknowledgments
 

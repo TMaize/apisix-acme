@@ -64,7 +64,7 @@ async function listSSL(apisix_host, token, unique) {
       if (idx == -1) {
         list.push(info)
       }
-      // 取即将过期的域名
+      // 同一个域名有多个取即将过期的域名
       if (idx != -1 && list[idx].validity_end > info.validity_end) {
         list.splice(idx, 1, info)
       }
@@ -252,15 +252,15 @@ async function createSSL(domain, email) {
     }
   }
 
-  const options = { cwd: path.join(__dirname, 'acme.sh-master'), timeout: 1000 * 90 }
+  const options = {timeout: 1000 * 90 }
 
-  await execShell(`sh acme.sh --issue --force -m ${email} --server letsencrypt -d ${domain} -w ${web_root}`, options).catch(data => {
+  await execShell(`acme.sh --issue --force -m ${email} --server letsencrypt -d ${domain} -w ${web_root}`, options).catch(data => {
     const error = data.error
     sendMsg(`创建证书失败 ${domain} \n\n` + '```\n' + data.output + '\n```')
     return Promise.reject(error)
   })
 
-  await execShell(`sh acme.sh --install-cert -d ${domain}  --key-file ${ssl_key} --fullchain-file ${ssl_cer}`, options)
+  await execShell(`acme.sh --install-cert -d ${domain}  --key-file ${ssl_key} --fullchain-file ${ssl_cer}`, options)
 
   const info = parseCA(ssl_cer, ssl_key)
   const end_date = moment(info.validity_end * 1000).format('YYYY-MM-DD HH:mm:ss')
@@ -343,6 +343,22 @@ async function sleep(ms) {
   })
 }
 
+function setupConsole() {
+  const _log = console.log
+  const _error = console.error
+  const T_FORMAT = 'YYYY-MM-DD HH:mm:ss'
+
+  console.log = function () {
+    const t = moment().format(T_FORMAT)
+    _log.call(this, `${t} I |`, ...arguments)
+  }
+
+  console.error = function () {
+    const t = moment().format(T_FORMAT)
+    _error.call(this, `${t} E |`, ...arguments)
+  }
+}
+
 module.exports = {
   addSelfRoute,
   addVerifyRoute,
@@ -352,5 +368,6 @@ module.exports = {
   createSSL,
   applySSL,
   sendMsg,
-  sleep
+  sleep,
+  setupConsole
 }
