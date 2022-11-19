@@ -16,5 +16,5 @@ module.exports = {
   SELF_APISIX_HOST,
   ACME_MAIL,
   DING_DING_TOKEN,
-  RENEW_LESS:  S_DAY * 30
+  RENEW_LESS:  S_DAY * 31
 }

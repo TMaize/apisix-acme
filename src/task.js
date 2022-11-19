@@ -25,9 +25,23 @@ async function queryTask(domain) {
 async function createTask(domain, mail, serviceList) {
   const task = await queryTask(domain)
 
-  const temp = { ...task }
-  if (temp.validity_end) temp.validity_end = moment(temp.validity_end * 1000).format('YYYY-MM-DD HH:mm:ss')
-  console.log('检查证书', JSON.stringify(temp))
+  {
+    const temp = { ...task }
+    if (temp.status == 'success') {
+      const end = temp.validity_end
+
+      delete temp.validity_end
+      delete temp.status
+
+      const renew_date = moment(end * 1000).subtract(config.RENEW_LESS, 's')
+      const task_date = renew_date.clone().hour(1).minute(0).seconds(0).millisecond(0)
+      if (renew_date.isAfter(task_date)) task_date.add(1, 'd')
+
+      temp.end_date = moment(end * 1000).format('YYYY-MM-DD HH:mm:ss')
+      temp.task_date = task_date.format('YYYY-MM-DD HH:mm:ss')
+    }
+    console.log('检查证书', JSON.stringify(temp))
+  }
 
   if (task.status === 'running') {
     return { code: 200, message: '证书申请中，等待片刻', data: { status: 'running', domain } }
