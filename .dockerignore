@@ -2,6 +2,6 @@
 .dockerignore
 node_modules
 build.sh
-dev.sh
+config.local.yml
 Dockerfile
 README.md

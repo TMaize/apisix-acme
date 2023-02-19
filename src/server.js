@@ -20,14 +20,14 @@ app.use(async (ctx, next) => {
     return
   }
 
-  ctx.state.verifyToken = ctx.header.verify_token || ctx.header['verify-token'] || ''
+  ctx.state.verifyToken = ctx.header['verify-token'] || ctx.header.verify_token || ''
 
   try {
     await next()
   } catch (error) {
     const message = error.message || error
     ctx.body = { code: 500, message }
-    common.sendMsg(`系统异常: ${message}\n\n` + '```\n' + error.stack + '\n```')
+    common.sendMsg(`接口异常: ${message}\n\n` + '```\n' + error.stack + '\n```')
   }
 })
 
@@ -36,7 +36,7 @@ app.use(router.routes())
 
 async function start() {
   return new Promise(function (resolve, reject) {
-    const server = app.listen(config.PORT, '0.0.0.0')
+    const server = app.listen(config.port, '0.0.0.0')
     server.on('error', reject)
     server.on('listening', function () {
       console.log('server start success:', server.address())

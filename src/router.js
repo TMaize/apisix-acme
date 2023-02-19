@@ -8,7 +8,7 @@ const router = new KoaRouter()
 
 // 查询任务
 router.get('/apisix_acme/task_status', async (ctx, next) => {
-  if (config.VERIFY_TOKEN && ctx.state.verifyToken != config.VERIFY_TOKEN) {
+  if (ctx.state.verifyToken != config.verify_token) {
     ctx.body = { code: 401, message: 'invalid VERIFY_TOKEN' }
     return
   }
@@ -24,7 +24,7 @@ router.get('/apisix_acme/task_status', async (ctx, next) => {
 
 // 创建任务
 router.post('/apisix_acme/task_create', async (ctx, next) => {
-  if (config.VERIFY_TOKEN && ctx.state.verifyToken != config.VERIFY_TOKEN) {
+  if (ctx.state.verifyToken != config.verify_token) {
     ctx.body = { code: 401, message: 'invalid VERIFY_TOKEN' }
     return
   }
@@ -32,12 +32,13 @@ router.post('/apisix_acme/task_create', async (ctx, next) => {
   const body = ctx.request.body || {}
   const domain = body.domain
   const serviceList = body.serviceList || []
-  const mail = body.mail || config.ACME_MAIL
+  const mail = body.mail || config.acme_mail
 
   if (!domain) {
     ctx.body = { code: 400, message: 'domain is required' }
     return
   }
+
   const result = await task.createTask(domain, mail, serviceList)
   ctx.body = result
 })

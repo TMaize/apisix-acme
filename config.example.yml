@@ -1,0 +1,34 @@
+# 非必填，应用端口，默认80
+port: 80
+
+# 必填，本应用接口调用token
+verify_token: custom_token
+
+# 必填，apisix 接口地址
+apisix_host: http://apisix:9080
+apisix_token: '******'
+
+# 必填，将自身服务注册到apisix的地址
+self_apisix_host: http://apisix-acme:80
+
+# 必填，证书申请使用，证书快过期时会发送邮件
+acme_mail: ''
+
+# 非必填，钉钉token(关键词apisix-acme)，用于发送一些通知，可不配置
+ding_ding_token: ''
+
+# 非必填，自动续期时间，单位天
+renew_day: 30
+
+# 非必填，单域名(DNS验证，文件验证)，泛域名（DNS验证）。只用到单域名证书申请时可不配置
+dns_api:
+  - domain: example-1.com
+    dns: dns_ali
+    env: 
+      Ali_Key: xxx
+      Ali_Secret: xxx
+  - domain: example-2.com
+    dns: dns_dp
+    env: 
+      DP_Id: xxx
+      DP_Key: xxx

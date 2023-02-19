@@ -511,6 +511,11 @@ vary@^1.1.2:
   resolved "https://mirrors.cloud.tencent.com/npm/vary/-/vary-1.1.2.tgz#2299f02c6ded30d4a5961b0b9f74524a18f634fc"
   integrity sha1-IpnwLG3tMNSllhsLn3RSShj2NPw=
 
+yaml@^2.2.1:
+  version "2.2.1"
+  resolved "https://mirrors.cloud.tencent.com/npm/yaml/-/yaml-2.2.1.tgz#3014bf0482dcd15147aa8e56109ce8632cd60ce4"
+  integrity sha512-e0WHiYql7+9wr4cWMx3TVQrNwejKaEe7/rHNmQmqRjazfOP5W8PB6Jpebb5o6fIapbz9o9+2ipcaTM2ZwDI6lw==
+
 ylru@^1.2.0:
   version "1.3.2"
   resolved "https://mirrors.cloud.tencent.com/npm/ylru/-/ylru-1.3.2.tgz#0de48017473275a4cbdfc83a1eaf67c01af8a785"

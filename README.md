@@ -1,16 +1,22 @@
 # apisix-acme
 
-自动申请 acme 证书，自动添加 acme 验证路由，证书自动续期
+管理 apisix 里面的证书，支持自动续期，支持通过接口创建单域名、泛域名证书
 
-目前只支持通过文本验证来申请单域名证书，暂不支持泛域名证书申请
+单域名：优先使用 dns 验证，未配置 dns_api 的情况下使用 apisix 自动创建路由进行文件验证
+
+泛域名：只支持使用 dns 验证
 
 ## 步骤
 
-1. 域名解析到 apisix 服务器
+1. 域名解析到 apisix 服务器（dsn 验证不需要该步骤）
 
-2. 调用服务 `http://${apisix-server}/apisix_acme/task_create` 自动创建证书
+2. 调用服务 `http://${apisix-server}/apisix_acme/task_create` 创建证书，也可在 apisix 里面手动导入证书
 
-3. 每天凌晨会自动检查 30 天内即将过期证书并自动重新申请
+3. 每天凌晨会自动检查即将过期且符合格式（单sni）的证书并自动重新申请
+
+## 配置文件
+
+参考 [config.yml](config.example.yml)
 
 ## 安装
 
@@ -20,20 +26,15 @@
 services:
   # ...
   apisix-acme:
-    image: apisix-acme:1.0.10
+    image: apisix-acme:2.0.0
     restart: always
     depends_on:
       - apisix
     volumes:
       - ./apisix_acme_out:/app/src/out
+      - ./apisix_acme_config.yml:/app/config.yml
     environment:
       - TZ=Asia/Shanghai
-      - VERIFY_TOKEN=custom_token
-      - SELF_APISIX_HOST=http://apisix-acme:80
-      - APISIX_HOST=http://apisix:9080
-      - APISIX_TOKEN=xxxxxxxxxx
-      - ACME_MAIL=mail@example.com
-      - DING_DING_TOKEN=xxxxxxxxxx
     networks:
       apisix:
 ```
