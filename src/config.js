@@ -42,7 +42,7 @@ function init() {
   if (!config.verify_token) throw new Error('Need to configure: verify_token')
   if (!config.acme_mail) throw new Error('Need to configure: acme_mail')
   if (!config.apisix_host) throw new Error('Need to configure: apisix_host')
-  if (!config.apisix_host) throw new Error('Need to configure: apisix_host')
+  if (!config.apisix_token) throw new Error('Need to configure: apisix_token')
   if (!config.self_apisix_host) throw new Error('Need to configure: self_apisix_host')
 }
 
