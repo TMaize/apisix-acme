@@ -33,13 +33,14 @@ router.post('/apisix_acme/task_create', async (ctx, next) => {
   const domain = body.domain
   const serviceList = body.serviceList || []
   const mail = body.mail || config.acme_mail
+  const force = body.force === true
 
   if (!domain) {
     ctx.body = { code: 400, message: 'domain is required' }
     return
   }
 
-  const result = await task.createTask(domain, mail, serviceList)
+  const result = await task.createTask(domain, mail, serviceList, force)
   ctx.body = result
 })
 

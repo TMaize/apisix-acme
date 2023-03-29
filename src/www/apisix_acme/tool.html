@@ -21,6 +21,10 @@
         display: inline-block;
         width: 400px;
       }
+      label input[type='checkbox'] {
+        width: auto;
+        margin: 0;
+      }
       ul {
         display: inline-block;
         margin: 0;
@@ -47,6 +51,10 @@
           <span>ACME Mail</span>
           <input type="text" v-model="state.acmeMail" />
         </label>
+        <label>
+          <span>Force</span>
+          <input type="checkbox" v-model="state.force" />
+        </label>
         <input type="submit" :value="state.loading?'请求中':'提交'" :disabled="state.loading" />
       </form>
       <ul>
@@ -64,6 +72,7 @@
             verifyToken: 'your token',
             domain: location.hostname,
             acmeMail: '',
+            force: false,
             result: ['等待提交']
           })
 
@@ -78,7 +87,9 @@
                 },
                 data: {
                   domain: state.domain,
-                  mail: state.acmeMail
+                  mail: state.acmeMail,
+                  force: state.force,
+                  serviceList: []
                 }
               })
               .then(res => {
@@ -87,6 +98,7 @@
               .catch(err => {
                 state.result.push(err.message)
               })
+            state.force = false
             state.loading = false
           }
           return { state, submit }
