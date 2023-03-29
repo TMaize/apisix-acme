@@ -20,6 +20,9 @@ ding_ding_token: ''
 # 非必填，自动续期时间，单位天
 renew_day: 30
 
+# 非必填，定时任务，默认 0 0 1 * * *
+renew_cron: '0 0 1 * * *'
+
 # 非必填，单域名(DNS验证，文件验证)，泛域名（DNS验证）。只用到单域名证书申请时可不配置
 dns_api:
   - domain: example-1.com

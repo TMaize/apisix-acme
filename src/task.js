@@ -142,7 +142,7 @@ async function renewAll() {
 }
 
 async function scheduleTask() {
-  schedule.scheduleJob('renewAll', '0 0 1 * * *', renewAll)
+  schedule.scheduleJob('renewAll', config.renew_cron, renewAll)
   renewAll() // 立即执行一次
 }
 
