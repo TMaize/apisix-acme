@@ -79,13 +79,13 @@ async function createSSLFromCache(domain) {
   return null
 }
 
-async function createSSL(domain, email, dnsParam) {
+async function createSSL(domain, email, dnsParam, acmeEnv, acmeParam) {
   const ssl_key = path.join('out', `${domain}.key`)
   const ssl_cer = path.join('out', `${domain}.cer`)
 
   if (dnsParam) {
-    const options = { timeout: 1000 * 90, env: dnsParam.env }
-    await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} --server letsencrypt -d ${domain} --dns ${dnsParam.dns}`, options).catch(
+    const options = { timeout: 1000 * 90, env: { ...acmeEnv, ...dnsParam.env } }
+    await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} --dns ${dnsParam.dns} ${acmeParam.join(' ')}`, options).catch(
       data => {
         return Promise.reject({
           message: 'DSN验证申请证书失败',
@@ -95,10 +95,10 @@ async function createSSL(domain, email, dnsParam) {
       }
     )
   } else {
-    const options = { timeout: 1000 * 90 }
+    const options = { timeout: 1000 * 90, env: { ...acmeEnv } }
     const web_root = path.join(__dirname, 'www')
 
-    await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} --server letsencrypt -d ${domain} -w ${web_root}`, options).catch(data => {
+    await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} -w ${web_root} ${acmeParam.join(' ')}`, options).catch(data => {
       return Promise.reject({
         message: '路由验证申请证书失败',
         stack: data.error.stack,

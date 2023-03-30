@@ -106,7 +106,7 @@ async function doTask() {
         sslInfo = await common.createSSLFromCache(domain)
       }
       if (!sslInfo) {
-        sslInfo = await common.createSSL(domain, mail, dnsParam)
+        sslInfo = await common.createSSL(domain, mail, dnsParam, config.acme_env, config.acme_param)
       }
 
       await apisix.applySSL(domain, sslInfo)

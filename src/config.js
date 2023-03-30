@@ -14,7 +14,9 @@ const config = {
   renew_day: 0,
   renew_cron: '',
   renew_less: 0,
-  dns_api: []
+  dns_api: [],
+  acme_env: {},
+  acme_param: []
 }
 
 function init() {
@@ -39,6 +41,13 @@ function init() {
   config.renew_cron = String(f.renew_cron || '0 0 1 * * *')
   config.renew_less = config.renew_day * 24 * 60 * 60
   config.dns_api = Array.isArray(f.dns_api) ? f.dns_api : []
+  config.acme_env = { ...f.acme_env }
+  config.acme_param = Array.isArray(f.acme_param) ? f.acme_param : []
+
+  const isConfigServer = config.acme_param.some(item => item.indexOf('--server ') != -1)
+  if (!isConfigServer) {
+    config.acme_param.push('--server letsencrypt')
+  }
 
   if (config.renew_day <= 0) throw new Error('Bad configure value: renew_day = ' + config.renew_day)
   if (!config.verify_token) throw new Error('Need to configure: verify_token')
