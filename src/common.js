@@ -45,7 +45,7 @@ function getRootDomain(domain) {
 
 // 解析证书文件
 function parseCA(ssl_cer, ssl_key) {
-  const data = child_process.execSync(`openssl x509 -text -noout -in ${ssl_cer}`, { encoding: 'utf8' })
+  const data = child_process.execSync(`openssl x509 -text -noout -in '${ssl_cer}'`, { encoding: 'utf8' })
   const snis = /DNS:.+/
     .exec(data)[0]
     .split(',')

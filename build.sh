@@ -1,4 +1,4 @@
-image=apisix-acme:2.0.2
+image=apisix-acme:2.0.3
 
 input=$1
 
