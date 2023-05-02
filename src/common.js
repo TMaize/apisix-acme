@@ -84,7 +84,7 @@ async function createSSL(domain, email, dnsParam, acmeEnv, acmeParam) {
   const ssl_cer = path.join('out', `${domain}.cer`)
 
   if (dnsParam) {
-    const options = { timeout: 1000 * 90, env: { ...acmeEnv, ...dnsParam.env } }
+    const options = { timeout: 1000 * 350, env: { ...acmeEnv, ...dnsParam.env } }
     await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} --dns ${dnsParam.dns} ${acmeParam.join(' ')}`, options).catch(
       data => {
         return Promise.reject({
@@ -95,7 +95,7 @@ async function createSSL(domain, email, dnsParam, acmeEnv, acmeParam) {
       }
     )
   } else {
-    const options = { timeout: 1000 * 90, env: { ...acmeEnv } }
+    const options = { timeout: 1000 * 350, env: { ...acmeEnv } }
     const web_root = path.join(__dirname, 'www')
 
     await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} -w ${web_root} ${acmeParam.join(' ')}`, options).catch(data => {
