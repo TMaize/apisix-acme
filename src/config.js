@@ -9,7 +9,7 @@ const config = {
   apisix_host: '',
   apisix_token: '',
   self_apisix_host: '',
-  priority: 999,
+  route_priority: 999,
   acme_mail: '',
   ding_ding_token: '',
   renew_day: 0,
@@ -37,7 +37,7 @@ function init() {
   config.apisix_token = f.apisix_token || ''
   config.self_apisix_host = f.self_apisix_host || ''
   config.acme_mail = f.acme_mail || ''
-  config.priority = f.priority || 999
+  config.route_priority = f.route_priority === 0 ? 0 : (Number(f.route_priority) || 999)
   config.ding_ding_token = f.ding_ding_token || ''
   config.renew_day = Number(f.renew_day) || 30
   config.renew_cron = String(f.renew_cron || '0 0 1 * * *')
