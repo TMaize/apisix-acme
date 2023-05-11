@@ -17,6 +17,7 @@ async function addSelfRoute() {
         uri: '/apisix_acme/*',
         name: id,
         methods: ['GET', 'POST', 'OPTIONS', 'HEAD'],
+	priority: config.priority,
         // host: domain,
         plugins: {
           'proxy-rewrite': {
@@ -79,6 +80,7 @@ async function addVerifyRoute(domain) {
       uri: '/.well-known/acme-challenge/*',
       name: id,
       methods: ['GET'],
+      priority: config.priority,
       host: domain,
       plugins: {
         'proxy-rewrite': {
