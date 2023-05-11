@@ -14,6 +14,8 @@ self_apisix_host: http://apisix-acme:80
 # 必填，证书申请使用，证书快过期时会发送邮件
 acme_mail: 'mail@example.com'
 
+# 非必填，添加自身路由和临时路由的默认优先级。防止路由优先级太低执行不到;
+priority: 999,
 # 非必填，钉钉token(关键词apisix-acme)，用于发送一些通知，可不配置
 # ding_ding_token: ''
 
