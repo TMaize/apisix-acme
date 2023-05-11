@@ -23,20 +23,23 @@
 可以直接使用 [tmaize/apisix-acme](https://hub.docker.com/r/tmaize/apisix-acme) 镜像，或者本地构建`./build.sh build`
 
 ```yaml
+version: "3"
+
 services:
-  # ...
   apisix-acme:
     image: apisix-acme:2.1.0
     restart: always
-    depends_on:
-      - apisix
     volumes:
-      - ./apisix_acme_out:/app/src/out
-      - ./apisix_acme_config.yml:/app/config.yml
+      - ./out:/app/out
+      - ./config.yml:/app/config.yml
     environment:
       - TZ=Asia/Shanghai
     networks:
       apisix:
+
+networks:
+  apisix:
+    external: true
 ```
 
 ## API
