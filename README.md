@@ -26,7 +26,7 @@
 services:
   # ...
   apisix-acme:
-    image: apisix-acme:2.0.6
+    image: apisix-acme:2.1.0
     restart: always
     depends_on:
       - apisix
