@@ -5,8 +5,8 @@ const apisix = require('./apisix')
 const config = require('./config')
 const common = require('./common')
 
-// 运行中 {"status":"running", domain, mail, serviceList, error}
-// 上次运行失败 {"status":"error", domain, mail, serviceList, error}
+// 运行中 {"status":"running", domain, mail, serviceList, error, force}
+// 上次运行失败 {"status":"error", domain, mail, serviceList, error, force}
 // 从apisix中查询到数据 {"status":"success", domain, validity_end}
 const taskList = []
 let taskLock = false
@@ -22,7 +22,7 @@ async function queryTask(domain) {
   return { domain, status: 'success', validity_end }
 }
 
-async function createTask(domain, mail, serviceList) {
+async function createTask(domain, mail, serviceList, force) {
   const task = await queryTask(domain)
 
   switch (task.status) {
@@ -41,8 +41,12 @@ async function createTask(domain, mail, serviceList) {
       const msg_3 = `提前续期:${config.renew_day}天`
 
       if (left_seconds >= config.renew_less) {
-        console.log('跳过任务', msg_1, msg_2, msg_3, domain)
-        return { code: 200, message: '证书已存在且未过期，跳过操作', data: { status: 'skip', domain } }
+        if (force) {
+          console.log('强制任务', msg_1, msg_2, msg_3, domain)
+        } else {
+          console.log('跳过任务', msg_1, msg_2, msg_3, domain)
+          return { code: 200, message: '证书已存在且未过期，跳过操作', data: { status: 'skip', domain } }
+        }
       } else {
         console.log('创建任务', msg_1, msg_2, msg_3, domain)
       }
@@ -58,6 +62,7 @@ async function createTask(domain, mail, serviceList) {
     domain: domain,
     mail,
     serviceList,
+    force,
     error: ''
   })
 
@@ -96,8 +101,13 @@ async function doTask() {
           await apisix.addVerifyRoute(domain)
         }
       }
-      let sslInfo = await common.createSSLFromCache(domain)
-      if (!sslInfo) sslInfo = await common.createSSL(domain, mail, dnsParam)
+      let sslInfo = null
+      if (!task.force) {
+        sslInfo = await common.createSSLFromCache(domain)
+      }
+      if (!sslInfo) {
+        sslInfo = await common.createSSL(domain, mail, dnsParam, config.acme_env, config.acme_param)
+      }
 
       await apisix.applySSL(domain, sslInfo)
 
@@ -137,12 +147,12 @@ async function renewAll() {
   const list = await apisix.listSSL()
   for (let i = 0; i < list.length; i++) {
     const item = list[i]
-    await createTask(item.domain, config.acme_mail).catch(err => {})
+    await createTask(item.domain, config.acme_mail, [], false).catch(err => {})
   }
 }
 
 async function scheduleTask() {
-  schedule.scheduleJob('renewAll', '0 0 1 * * *', renewAll)
+  schedule.scheduleJob('renewAll', config.renew_cron, renewAll)
   renewAll() // 立即执行一次
 }
 

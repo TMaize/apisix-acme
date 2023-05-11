@@ -57,7 +57,7 @@ async function addSelfRoute() {
     } catch (error) {
       if (i >= 3) console.error('addSelfRoute fail:', error.message || error, 'retrying ...')
       if (i == 6) {
-        sendMsg(`addSelfRoute fail: ${error.message || error}`)
+        common.sendMsg(`addSelfRoute fail: ${error.message || error}`)
         return Promise.reject(new Error('addSelfRoute fail: ' + error.message || error))
       }
     }

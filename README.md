@@ -26,7 +26,7 @@
 services:
   # ...
   apisix-acme:
-    image: apisix-acme:2.0.0
+    image: apisix-acme:2.0.5
     restart: always
     depends_on:
       - apisix
@@ -43,10 +43,10 @@ services:
 
 - 新增、更新证书 `/apisix_acme/task_create`
 
-  domain 必填，serviceList、mail 可选，VERIFY-TOKEN 可选
+  domain 必填，serviceList、mail、force，VERIFY-TOKEN 可选
 
   ```
-  POST { "domain": "example.com", "serviceList": [], "mail": "" }
+  POST {"domain":"example.com","serviceList":[],"mail":"","force":false}
   HEADER {VERIFY-TOKEN: xxxxxxxxxx}
   ```
 
