@@ -1,9 +1,8 @@
-const schedule = require('node-schedule')
-const moment = require('moment')
-
-const apisix = require('./apisix')
-const config = require('./config')
-const common = require('./common')
+import moment from 'moment'
+import schedule from 'node-schedule'
+import apisix from './apisix.js'
+import common from './common.js'
+import config from './config.js'
 
 // 运行中 {"status":"running", domain, mail, serviceList, error, force}
 // 上次运行失败 {"status":"error", domain, mail, serviceList, error, force}
@@ -156,7 +155,7 @@ async function scheduleTask() {
   renewAll() // 立即执行一次
 }
 
-module.exports = {
+export default {
   scheduleTask,
   queryTask,
   createTask

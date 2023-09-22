@@ -4,6 +4,7 @@
   "private": true,
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "node src/index.js -c config.local.yml"
   },

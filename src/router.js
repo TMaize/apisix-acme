@@ -1,10 +1,13 @@
-const fs = require('fs')
-const path = require('path')
-const KoaRouter = require('@koa/router')
-const config = require('./config')
-const task = require('./task')
+import KoaRouter from '@koa/router'
+import fs from 'fs'
+import path from 'path'
+import url from 'url'
+import config from './config.js'
+import task from './task.js'
 
 const router = new KoaRouter()
+
+const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
 // 查询任务
 router.get('/apisix_acme/task_status', async (ctx, next) => {
@@ -49,7 +52,7 @@ router.post('/apisix_acme/task_create', async (ctx, next) => {
 router.get('(.*)', (ctx, next) => {
   let file = ctx.params[0]
 
-  const filePath = path.join(__dirname, 'www', file)
+  const filePath = path.join(DIR_NAME, 'www', file)
 
   if (!fs.existsSync(filePath)) {
     ctx.status = 404
@@ -65,4 +68,4 @@ router.get('(.*)', (ctx, next) => {
   ctx.body = fs.readFileSync(filePath, 'utf8')
 })
 
-module.exports = router
+export default router

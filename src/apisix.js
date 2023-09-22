@@ -1,7 +1,6 @@
-const axios = require('axios').default
-
-const common = require('./common')
-const config = require('./config')
+import axios from 'axios'
+import common from './common.js'
+import config from './config.js'
 
 // 把自己注册到 apisix
 async function addSelfRoute() {
@@ -233,7 +232,7 @@ async function updateServiceHost(serviceName, domain, type) {
   })
 }
 
-module.exports = {
+export default {
   addSelfRoute,
   addVerifyRoute,
   removeVerifyRoute,

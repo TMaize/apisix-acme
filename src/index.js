@@ -1,8 +1,8 @@
-const server = require('./server')
-const common = require('./common')
-const apisix = require('./apisix')
-const task = require('./task')
-const config = require('./config')
+import apisix from './apisix.js'
+import common from './common.js'
+import config from './config.js'
+import server from './server.js'
+import task from './task.js'
 
 async function main() {
   try {

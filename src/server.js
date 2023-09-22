@@ -1,8 +1,8 @@
-const Koa = require('koa')
-const koaBody = require('koa-body')
-const common = require('./common')
-const config = require('./config')
-const router = require('./router')
+import Koa from 'koa'
+import koaBody from 'koa-body'
+import common from './common.js'
+import config from './config.js'
+import router from './router.js'
 
 const app = new Koa()
 
@@ -45,6 +45,6 @@ async function start() {
   })
 }
 
-module.exports = {
+export default {
   start
 }

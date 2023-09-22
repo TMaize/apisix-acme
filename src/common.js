@@ -1,11 +1,19 @@
-const axios = require('axios').default
-const fs = require('fs')
-const path = require('path')
-const moment = require('moment')
-const child_process = require('child_process')
+import axios from 'axios'
+import child_process from 'child_process'
+import fs from 'fs'
+import moment from 'moment'
+import path from 'path'
+import url from 'url'
+import config from './config.js'
 
-const config = require('./config')
+const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
+/**
+ * 执行命令
+ * @param {string} cmd
+ * @param {import('child_process').SpawnOptionsWithoutStdio} options
+ * @returns {Promise<{code: number, output: string, error: Error | undefined}>}
+ */
 async function execShell(cmd, options) {
   const arr = cmd.split(' ').filter(item => item != '')
   const [bin, ...args] = arr
@@ -96,7 +104,7 @@ async function createSSL(domain, email, dnsParam, acmeEnv, acmeParam) {
     )
   } else {
     const options = { timeout: 1000 * 350, env: { ...acmeEnv } }
-    const web_root = path.join(__dirname, 'www')
+    const web_root = path.join(DIR_NAME, 'www')
 
     await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} -w ${web_root} ${acmeParam.join(' ')}`, options).catch(data => {
       return Promise.reject({
@@ -166,7 +174,7 @@ function toFixed(n, len, round) {
   return arr.slice(0, arr.indexOf('.') + len + 1).join('')
 }
 
-module.exports = {
+export default {
   getRootDomain,
   createSSL,
   createSSLFromCache,

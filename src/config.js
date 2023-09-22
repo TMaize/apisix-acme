@@ -1,6 +1,6 @@
-const fs = require('fs')
-const path = require('path')
-const YAML = require('yaml')
+import fs from 'fs'
+import path from 'path'
+import YAML from 'yaml'
 
 const config = {
   init,
@@ -21,12 +21,15 @@ const config = {
 }
 
 function init() {
-  const idx = process.argv.indexOf('-c')
-  const configFile = idx == -1 ? 'config.yml' : process.argv[idx + 1]
+  let configFile = path.resolve('config.yml')
+  if (process.argv.indexOf('-c') != -1) {
+    const idx = process.argv.indexOf('-c')
+    configFile = path.resolve(process.argv[idx + 1])
+  }
 
   const ok = fs.existsSync(configFile)
-  if (!ok) throw new Error(`can't find ${configFile}`)
-  console.log(`use config ${configFile}`)
+  if (!ok) throw new Error(`can't find config ${configFile}`)
+  console.log(`load config ${configFile}`)
 
   const configText = fs.readFileSync(configFile, 'utf-8')
   const f = YAML.parse(configText)
@@ -37,7 +40,7 @@ function init() {
   config.apisix_token = f.apisix_token || ''
   config.self_apisix_host = f.self_apisix_host || ''
   config.acme_mail = f.acme_mail || ''
-  config.route_priority = f.route_priority === 0 ? 0 : (Number(f.route_priority) || 999)
+  config.route_priority = f.route_priority === 0 ? 0 : Number(f.route_priority) || 999
   config.ding_ding_token = f.ding_ding_token || ''
   config.renew_day = Number(f.renew_day) || 30
   config.renew_cron = String(f.renew_cron || '0 0 1 * * *')
@@ -60,4 +63,4 @@ function init() {
   if (config.renew_cron.split(' ').length !== 6) throw new Error('Bad configure value: renew_cron = ' + config.renew_cron)
 }
 
-module.exports = config
+export default config
