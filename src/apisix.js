@@ -1,6 +1,28 @@
 import axios from 'axios'
+import { compareVersions } from 'compare-versions'
+import v2 from './apisix/v2.js'
+import v3 from './apisix/v3.js'
 import common from './common.js'
 import config from './config.js'
+
+async function getVersion() {
+  const headers = await axios
+    .request({
+      method: 'GET',
+      headers: {
+        'X-API-KEY': config.apisix_token
+      },
+      url: `${config.apisix_host}/apisix/admin/routes`
+    })
+    .then(resp => resp.headers)
+    .catch(err => {
+      return (err.response || {}).headers || {}
+    })
+
+  const server = headers['server'] || ''
+  const version = server.replace('APISIX/', '') || '0.0.0'
+  return version
+}
 
 // 把自己注册到 apisix
 async function addSelfRoute() {
@@ -8,6 +30,7 @@ async function addSelfRoute() {
     const id = `apisix_acme`
     await axios.request({
       method: 'PUT',
+      timeout: 5 * 1000,
       headers: {
         'X-API-KEY': config.apisix_token
       },
@@ -55,15 +78,15 @@ async function addSelfRoute() {
       await add()
       break
     } catch (error) {
-      if (i >= 3) console.error('addSelfRoute fail:', error.message || error, 'retrying ...')
+      if (i >= 3) console.error('init acme route fail:', error.message || error, 'retrying ...')
       if (i == 6) {
-        common.sendMsg(`addSelfRoute fail: ${error.message || error}`)
-        return Promise.reject(new Error('addSelfRoute fail: ' + error.message || error))
+        common.sendMsg(`init acme route fail: ${error.message || error}`)
+        return Promise.reject(new Error('init acme route fail: ' + error.message || error))
       }
     }
     await common.sleep(3000)
   }
-  console.log('addSelfRoute success')
+  console.log('init acme route success')
 }
 
 // 添加文件验证路由
@@ -125,26 +148,29 @@ async function removeVerifyRoute(domain) {
   })
 }
 
-// 列出指定单sni的证书，不传列出所有单sni的证书
+/**
+ * 列出指定单sni的证书，不传列出所有单sni的证书
+ * @typedef {{id: string, domain: string, validity_start: number, validity_end: number}} Item
+ * @param {string|undefined} sni
+ * @returns {Promise<Array<Item>>}
+ */
 async function listSSL(sni) {
-  const resp = await axios.request({
-    method: 'GET',
-    headers: { 'X-API-KEY': config.apisix_token },
-    url: `${config.apisix_host}/apisix/admin/ssl`
-  })
+  const version = await getVersion()
 
-  const { data } = resp
-  if (!data.count) return []
+  let list = []
+  if (compareVersions(version, '3.0.0') >= 0) {
+    list = await v3.sslList()
+  } else {
+    list = await v2.sslList()
+  }
 
-  const nodes = data.node.nodes || []
-  const list = []
+  const results = []
 
-  nodes.forEach(node => {
-    const item = node.value || {}
-    if (!item.snis || item.snis.length > 1) return
+  list.forEach(item => {
+    if (item.snis.length > 1) return
     if (sni && sni !== item.snis[0]) return
 
-    list.push({
+    results.push({
       id: item.id,
       domain: item.snis[0],
       validity_start: item.validity_start,
@@ -152,7 +178,7 @@ async function listSSL(sni) {
     })
   })
 
-  return list
+  return results
 }
 
 // 导入证书
@@ -170,14 +196,15 @@ async function applySSL(domain, sslInfo) {
     idList.push(String(Date.now()))
   }
 
+  const version = await getVersion()
+
   for (let i = 0; i < idList.length; i++) {
     const id = idList[i]
-    await axios.request({
-      method: 'PUT',
-      headers: { 'X-API-KEY': config.apisix_token },
-      url: `${config.apisix_host}/apisix/admin/ssl/${id}`,
-      data: sslInfo
-    })
+    if (compareVersions(version, '3.0.0') >= 0) {
+      await v3.setupSsl(id, sslInfo)
+    } else {
+      await v2.setupSsl(id, sslInfo)
+    }
   }
 }
 

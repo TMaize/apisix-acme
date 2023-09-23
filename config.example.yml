@@ -4,8 +4,8 @@
 # 必填，本应用接口调用token
 verify_token: custom_token
 
-# 必填，apisix 接口地址
-apisix_host: http://apisix:9080
+# 必填，apisix admin host
+apisix_host: http://apisix:9180
 apisix_token: '******'
 
 # 必填，将自身服务注册到apisix的地址
