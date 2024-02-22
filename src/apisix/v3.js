@@ -43,11 +43,19 @@ async function sslList() {
  * @returns {Promise<void>}
  */
 async function setupSsl(id, data) {
+  // 过滤掉 validity_start 和 validity_end，因为 v3 版本不允许此数据
+  const v3Data = Object.keys(data).reduce((acc, key) => {
+    if (key !== 'validity_start' && key !== 'validity_end') {
+      acc[key] = data[key]
+    }
+    return acc
+  }, {})
+
   return axios.request({
     method: 'PUT',
     headers: { 'X-API-KEY': config.apisix_token },
     url: `${config.apisix_host}/apisix/admin/ssls/${id}`,
-    data
+    data: v3Data
   })
 }
 
