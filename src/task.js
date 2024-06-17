@@ -87,7 +87,12 @@ async function doTask() {
     const mail = task.mail || config.acme_mail
     const serviceList = task.serviceList
 
-    const dnsParam = config.dns_api.find(item => item.domain == common.getRootDomain(domain))
+    let anyParsm = config.dns_api.find(item => item.domain == "*")
+    let dnsParam = config.dns_api.find(item => item.domain == common.getRootDomain(domain))
+    if (!dnsParam && anyParsm){
+      // 使用 * 匹配参数（只需要配置dns解析服务商即可）
+      dnsParam = anyParsm;
+    }
 
     let isAddRoute = false
     try {
