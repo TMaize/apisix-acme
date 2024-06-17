@@ -93,7 +93,14 @@ async function createSSL(domain, email, dnsParam, acmeEnv, acmeParam) {
 
   if (dnsParam) {
     const options = { timeout: 1000 * 350, env: { ...acmeEnv, ...dnsParam.env } }
-    await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} --dns ${dnsParam.dns} ${acmeParam.join(' ')}`, options).catch(
+    let dnsshell = ``;
+    if (domain.indexOf("*")>=0){
+
+      dnsshell = `acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain.replace("*.","")} -d ${domain}  --dns ${dnsParam.dns} ${acmeParam.join(' ')}`;
+    }else{
+      dnsshell = `acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} --dns ${dnsParam.dns} ${acmeParam.join(' ')}`
+    }
+    await execShell(dnsshell, options).catch(
       data => {
         return Promise.reject({
           message: 'DSN验证申请证书失败',
@@ -115,7 +122,14 @@ async function createSSL(domain, email, dnsParam, acmeEnv, acmeParam) {
     })
   }
 
-  await execShell(`acme.sh --home /acme.sh --install-cert -d ${domain} --key-file ${ssl_key} --fullchain-file ${ssl_cer}`, { timeout: 1000 * 10 })
+  let insshell = "";
+  if (domain.indexOf("*") >= 0) {
+
+    insshell = `acme.sh --home /acme.sh --install-cert -d ${domain.replace("*.", "")} -d ${domain}  --key-file ${ssl_key} --fullchain-file ${ssl_cer}`
+  } else {
+    insshell = `acme.sh --home /acme.sh --install-cert -d ${domain} --key-file ${ssl_key} --fullchain-file ${ssl_cer}`
+  }
+  await execShell(insshell, { timeout: 1000 * 10 })
 
   const info = parseCA(ssl_cer, ssl_key)
 

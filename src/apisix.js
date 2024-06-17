@@ -149,7 +149,7 @@ async function removeVerifyRoute(domain) {
 }
 
 /**
- * 列出指定单sni的证书，不传列出所有单sni的证书
+ * 列出指定单sni的证书，不传列出所有单sni的证书(泛域名也包括在内)
  * @typedef {{id: string, domain: string, validity_start: number, validity_end: number}} Item
  * @param {string|undefined} sni
  * @returns {Promise<Array<Item>>}
@@ -165,14 +165,14 @@ async function listSSL(sni) {
   }
 
   const results = []
-
   list.forEach(item => {
-    if (item.snis.length > 1) return
-    if (sni && sni !== item.snis[0]) return
-
+    var domain = item.snis.find(sni => sni.startsWith("*."));
+    if (!domain && item.snis.length > 1) return
+    domain = domain || item.snis[0];
+    if (sni && domain.indexOf(sni) < 0) return
     results.push({
       id: item.id,
-      domain: item.snis[0],
+      domain: domain,
       validity_start: item.validity_start,
       validity_end: item.validity_end
     })
