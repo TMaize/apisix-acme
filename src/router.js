@@ -12,7 +12,7 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 // 查询任务
 router.get('/apisix_acme/task_status', async (ctx, next) => {
   if (ctx.state.verifyToken != config.verify_token) {
-    ctx.body = { code: 401, message: 'invalid VERIFY_TOKEN' }
+    ctx.body = { code: 401, message: 'invalid VERIFY-TOKEN' }
     return
   }
 
@@ -28,7 +28,7 @@ router.get('/apisix_acme/task_status', async (ctx, next) => {
 // 创建任务
 router.post('/apisix_acme/task_create', async (ctx, next) => {
   if (ctx.state.verifyToken != config.verify_token) {
-    ctx.body = { code: 401, message: 'invalid VERIFY_TOKEN' }
+    ctx.body = { code: 401, message: 'invalid VERIFY-TOKEN' }
     return
   }
 

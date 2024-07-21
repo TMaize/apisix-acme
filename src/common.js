@@ -43,14 +43,6 @@ async function execShell(cmd, options) {
   })
 }
 
-function getRootDomain(domain) {
-  const temp = domain.split('.')
-  const list = []
-  list.unshift(temp.pop())
-  list.unshift(temp.pop())
-  return list.join('.')
-}
-
 // 解析证书文件
 function parseCA(ssl_cer, ssl_key) {
   const data = child_process.execSync(`openssl x509 -text -noout -in '${ssl_cer}'`, { encoding: 'utf8' })
@@ -75,11 +67,11 @@ function parseCA(ssl_cer, ssl_key) {
 }
 
 async function createSSLFromCache(domain) {
-  const ssl_key = path.join('out', `${domain}.key`)
-  const ssl_cer = path.join('out', `${domain}.cer`)
-  if (!fs.existsSync(ssl_cer)) return
+  const dc = getDomainConfig(domain)
 
-  const info = parseCA(ssl_cer, ssl_key)
+  if (!fs.existsSync(dc.cerPath)) return
+
+  const info = parseCA(dc.cerPath, dc.keyPath)
   if (info.validity_end - parseInt(Date.now() / 1000) >= config.renew_less) {
     return info
   }
@@ -88,36 +80,39 @@ async function createSSLFromCache(domain) {
 }
 
 async function createSSL(domain, email, dnsParam, acmeEnv, acmeParam) {
-  const ssl_key = path.join('out', `${domain}.key`)
-  const ssl_cer = path.join('out', `${domain}.cer`)
+  const dc = getDomainConfig(domain)
+  const options = { timeout: 1000 * 350, env: { ...acmeEnv, ...(dnsParam || {}).env } }
+
+  let argD = `-d ${domain}`
+  let argM = `-m ${email}`
+  let argW = ''
+  let argDNS = ''
 
   if (dnsParam) {
-    const options = { timeout: 1000 * 350, env: { ...acmeEnv, ...dnsParam.env } }
-    await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} --dns ${dnsParam.dns} ${acmeParam.join(' ')}`, options).catch(
-      data => {
-        return Promise.reject({
-          message: 'DSN验证申请证书失败',
-          stack: data.error.stack,
-          detail: data.output
-        })
-      }
-    )
+    if (dc.wildcard) {
+      argD = `-d ${dc.domain} -d ${dc.baseDomain}`
+    }
+    argDNS = `--dns ${dnsParam.dns}`
   } else {
-    const options = { timeout: 1000 * 350, env: { ...acmeEnv } }
-    const web_root = path.join(DIR_NAME, 'www')
-
-    await execShell(`acme.sh  --home /acme.sh --issue --force -m ${email} -d ${domain} -w ${web_root} ${acmeParam.join(' ')}`, options).catch(data => {
-      return Promise.reject({
-        message: '路由验证申请证书失败',
-        stack: data.error.stack,
-        detail: data.output
-      })
-    })
+    argW = `-w ${path.join(DIR_NAME, 'www')}`
   }
 
-  await execShell(`acme.sh --home /acme.sh --install-cert -d ${domain} --key-file ${ssl_key} --fullchain-file ${ssl_cer}`, { timeout: 1000 * 10 })
+  const args = `--issue --force ${argM} ${argD} ${argDNS} ${argW} ${acmeParam.join(' ')}`.replace(/\s{2,}/, ' ')
+  console.log('acme.sh 参数', args)
 
-  const info = parseCA(ssl_cer, ssl_key)
+  await execShell(`acme.sh --home /acme.sh ${args}`, options).catch(data => {
+    return Promise.reject({
+      message: 'acme.sh 执行失败',
+      stack: data.error.stack,
+      detail: data.output
+    })
+  })
+
+  fs.mkdirSync(path.dirname(dc.keyPath), { recursive: true })
+
+  await execShell(`acme.sh --home /acme.sh --install-cert ${argD} --key-file ${dc.keyPath} --fullchain-file ${dc.cerPath}`, { timeout: 1000 * 10 })
+
+  const info = parseCA(dc.cerPath, dc.keyPath)
 
   return info
 }
@@ -174,8 +169,37 @@ function toFixed(n, len, round) {
   return arr.slice(0, arr.indexOf('.') + len + 1).join('')
 }
 
+/**
+ * 获取域名基础配置
+ * @param {string} domain
+ * @returns {{domain: string, baseDomain: string, rootDomain: string, wildcard: boolean, keyPath: string, cerPath: string}}
+ */
+function getDomainConfig(domain) {
+  const wildcard = /^\*\./.test(domain)
+  const baseDomain = domain.replace(/^\*\./, '')
+
+  let keyPath = path.join('out', `${domain}.key`)
+  let cerPath = path.join('out', `${domain}.cer`)
+  if (wildcard) {
+    keyPath = path.join('out/wildcard', `${baseDomain}.key`)
+    cerPath = path.join('out/wildcard', `${baseDomain}.cer`)
+  }
+
+  const list = domain.split('.')
+  const rootDomain = list.slice(list.length - 2).join('.')
+
+  return {
+    domain,
+    baseDomain,
+    rootDomain,
+    wildcard,
+    keyPath,
+    cerPath
+  }
+}
+
 export default {
-  getRootDomain,
+  getDomainConfig,
   createSSL,
   createSSLFromCache,
   sendMsg,

@@ -167,15 +167,31 @@ async function listSSL(sni) {
   const results = []
 
   list.forEach(item => {
-    if (item.snis.length > 1) return
-    if (sni && sni !== item.snis[0]) return
+    if (!Array.isArray(item.snis) || item.snis.length == 0) {
+      return
+    }
 
-    results.push({
-      id: item.id,
-      domain: item.snis[0],
-      validity_start: item.validity_start,
-      validity_end: item.validity_end
-    })
+    const isSingle = item.snis.length == 1
+
+    let isWildcard = false
+    const idx1 = item.snis.findIndex(d => /^\*\./.test(d))
+    if (idx1 != -1 && item.snis.length === 2) {
+      const idx2 = idx1 === 1 ? 0 : 1
+      isWildcard = '*.' + item.snis[idx2] === item.snis[idx1]
+    }
+
+    if (isSingle || isWildcard) {
+      const domain = isSingle ? item.snis[0] : item.snis[idx1]
+      if (sni && domain !== sni) {
+        return
+      }
+      results.push({
+        id: item.id,
+        domain,
+        validity_start: item.validity_start,
+        validity_end: item.validity_end
+      })
+    }
   })
 
   return results

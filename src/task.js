@@ -86,13 +86,14 @@ async function doTask() {
     const domain = task.domain
     const mail = task.mail || config.acme_mail
     const serviceList = task.serviceList
+    const dc = common.getDomainConfig(domain)
 
-    const dnsParam = config.dns_api.find(item => item.domain == common.getRootDomain(domain))
+    const dnsParam = config.dns_api.find(item => item.domain == dc.rootDomain)
 
     let isAddRoute = false
     try {
       if (!dnsParam) {
-        if (domain.indexOf('*') != -1) {
+        if (dc.wildcard) {
           throw new Error('泛域名证书必须配置 dns_api')
         } else {
           isAddRoute = true
