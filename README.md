@@ -27,7 +27,7 @@ version: "3"
 
 services:
   apisix-acme:
-    image: apisix-acme:2.1.0
+    image: tmaize/apisix-acme:2.3.4
     restart: always
     volumes:
       - ./out:/app/out
