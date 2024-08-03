@@ -3,6 +3,7 @@ import schedule from 'node-schedule'
 import apisix from './apisix.js'
 import common from './common.js'
 import config from './config.js'
+import fs from 'fs'
 
 // 运行中 {"status":"running", domain, mail, serviceList, error, force}
 // 上次运行失败 {"status":"error", domain, mail, serviceList, error, force}
@@ -32,6 +33,23 @@ async function createTask(domain, mail, serviceList, force) {
       console.log('跳过任务', '已在执行', domain)
       return { code: 200, message: '证书申请中，等待片刻', data: { status: 'running', domain } }
     case 'success':
+      // 等待新方案
+      // 修复3.7.0以上版本无法正常获取到validity_end
+      try {
+        if (!task.validity_end) {
+          const dc = common.getDomainConfig(domain)
+          if (dc && fs.existsSync(dc.cerPath)) {
+            const info = common.parseCA(dc.cerPath, dc.keyPath)
+            if (info) {
+              task.validity_start = info.validity_start
+              task.validity_end = info.validity_end
+            }
+          }
+        }
+      } catch(error) {
+        console.log("parseCA Error", error)
+      }
+    
       const left_seconds = task.validity_end - parseInt(Date.now() / 1000)
       const end_date = moment(task.validity_end * 1000).format('YYYY-MM-DD HH:mm:ss')
 

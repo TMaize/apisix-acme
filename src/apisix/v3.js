@@ -53,5 +53,5 @@ async function setupSsl(id, data) {
 
 export default {
   sslList,
-  setupSsl
+  setupSsl,
 }

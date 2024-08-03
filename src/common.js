@@ -205,5 +205,6 @@ export default {
   sendMsg,
   sleep,
   setupConsole,
-  toFixed
+  toFixed,
+  parseCA,
 }

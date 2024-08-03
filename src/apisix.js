@@ -24,8 +24,24 @@ async function getVersion() {
   return version
 }
 
+function setErrorLoggerInterceptor() {
+  axios.interceptors.response.use(function(response) {
+      return response
+    }, function (error) {
+      if (error.config) {
+        console.log("AdminApi Error", error.config.method, error.config.url, error.config.data, error.response.data)
+      }
+      return Promise.reject(error)
+    }
+  )
+}
+
 // 把自己注册到 apisix
 async function addSelfRoute() {
+
+  // 不一定要放到这里
+  setErrorLoggerInterceptor()
+
   async function add() {
     const id = `apisix_acme`
     await axios.request({
@@ -217,7 +233,18 @@ async function applySSL(domain, sslInfo) {
   for (let i = 0; i < idList.length; i++) {
     const id = idList[i]
     if (compareVersions(version, '3.0.0') >= 0) {
-      await v3.setupSsl(id, sslInfo)
+      // https://github.com/apache/apisix/pull/10323
+      // https://apisix.apache.org/zh/blog/2023/11/21/release-apache-apisix-3.7.0/
+      // 修复 invalid configuration: additional properties forbidden, found validity_end
+      if (compareVersions(version, '3.7.0') >= 0) {
+        await v3.setupSsl(id, {
+          snis: sslInfo.snis,
+          cert: sslInfo.cert,
+          key: sslInfo.key,
+        })
+      } else {
+        await v3.setupSsl(id, sslInfo)
+      }
     } else {
       await v2.setupSsl(id, sslInfo)
     }
