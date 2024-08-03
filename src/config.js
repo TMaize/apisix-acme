@@ -8,6 +8,7 @@ const config = {
   verify_token: '',
   apisix_host: '',
   apisix_token: '',
+  apisix_version: '', // 防止 apisix enable_server_tokens = false 无法获取准确版本导致出错
   self_apisix_host: '',
   route_priority: 999,
   acme_mail: '',
@@ -38,6 +39,7 @@ function init() {
   config.verify_token = String(f.verify_token || '')
   config.apisix_host = f.apisix_host || ''
   config.apisix_token = f.apisix_token || ''
+  config.apisix_version = f.apisix_version || '0.0.0'
   config.self_apisix_host = f.self_apisix_host || ''
   config.acme_mail = f.acme_mail || ''
   config.route_priority = f.route_priority === 0 ? 0 : Number(f.route_priority) || 999

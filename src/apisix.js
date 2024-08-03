@@ -20,7 +20,7 @@ async function getVersion() {
     })
 
   const server = headers['server'] || ''
-  const version = server.replace('APISIX/', '') || '0.0.0'
+  let version = server.replace('APISIX/', '') || config.apisix_version
   return version
 }
 
