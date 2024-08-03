@@ -8,7 +8,7 @@ const config = {
   verify_token: '',
   apisix_host: '',
   apisix_token: '',
-  apisix_version: '', // 防止 apisix enable_server_tokens = false 无法获取准确版本导致出错
+  apisix_version: '', // 防止 apisix enable_server_tokens = false 导致无法获取准确版本号而出错
   self_apisix_host: '',
   route_priority: 999,
   acme_mail: '',
