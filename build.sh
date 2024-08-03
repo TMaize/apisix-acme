@@ -4,7 +4,7 @@ input=$1
 
 case $input in
   build)
-    docker build --no-cache --rm --tag ${image} .
+    docker build --platform linux/amd64 --no-cache --rm --tag ${image} .
     ;;
   publish)
     repository=tmaize/${image}
