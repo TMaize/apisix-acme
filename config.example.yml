@@ -7,9 +7,11 @@ verify_token: custom_token
 # 必填，apisix admin host
 apisix_host: http://apisix:9180
 apisix_token: '******'
+apisix_version: ''
 
 # 必填，将自身服务注册到apisix的地址
 self_apisix_host: http://apisix-acme:80
+apisix_api_prefix: apisix_acme
 
 # 必填，证书申请使用，证书快过期时会发送邮件
 acme_mail: 'mail@example.com'

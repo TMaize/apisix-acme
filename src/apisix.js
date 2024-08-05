@@ -20,12 +20,28 @@ async function getVersion() {
     })
 
   const server = headers['server'] || ''
-  const version = server.replace('APISIX/', '') || '0.0.0'
+  const version = server.replace("APISIX", "").replace('/', '').trim() || config.apisix_version
   return version
+}
+
+function setErrorLoggerInterceptor() {
+  axios.interceptors.response.use(function(response) {
+      return response
+    }, function (error) {
+      if (error.config) {
+        console.log("AdminApi Error", error.config.method, error.config.url, error.config.data, error.response.data)
+      }
+      return Promise.reject(error)
+    }
+  )
 }
 
 // 把自己注册到 apisix
 async function addSelfRoute() {
+
+  // 不一定要放到这里
+  setErrorLoggerInterceptor()
+
   async function add() {
     const id = `apisix_acme`
     await axios.request({
@@ -36,7 +52,7 @@ async function addSelfRoute() {
       },
       url: `${config.apisix_host}/apisix/admin/routes/${id}`,
       data: {
-        uri: '/apisix_acme/*',
+        uri: '/'+config.apisix_api_prefix+'/*',
         name: id,
         methods: ['GET', 'POST', 'OPTIONS', 'HEAD'],
         priority: config.route_priority,
@@ -171,6 +187,10 @@ async function listSSL(sni) {
       return
     }
 
+    if (!item.labels || !item.labels.acme) {
+      return
+    }
+
     const isSingle = item.snis.length == 1
 
     let isWildcard = false
@@ -189,7 +209,7 @@ async function listSSL(sni) {
         id: item.id,
         domain,
         validity_start: item.validity_start,
-        validity_end: item.validity_end
+        validity_end: item.validity_end,
       })
     }
   })
@@ -216,10 +236,27 @@ async function applySSL(domain, sslInfo) {
 
   for (let i = 0; i < idList.length; i++) {
     const id = idList[i]
+    const save = {
+      snis: sslInfo.snis,
+      cert: sslInfo.cert,
+      key: sslInfo.key,
+      validity_start: sslInfo.validity_start,
+      validity_end: sslInfo.validity_end,
+      labels: {
+        acme: "ok",
+      },
+    }
     if (compareVersions(version, '3.0.0') >= 0) {
-      await v3.setupSsl(id, sslInfo)
+      // https://github.com/apache/apisix/pull/10323
+      // https://apisix.apache.org/zh/blog/2023/11/21/release-apache-apisix-3.7.0/
+      // 修复 invalid configuration: additional properties forbidden, found validity_end
+      if (compareVersions(version, '3.7.0') >= 0) {
+        delete save.validity_start
+        delete save.validity_end
+      }
+      await v3.setupSsl(id, save)
     } else {
-      await v2.setupSsl(id, sslInfo)
+      await v2.setupSsl(id, save)
     }
   }
 }
