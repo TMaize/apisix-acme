@@ -10,7 +10,8 @@ const config = {
   apisix_token: '',
   apisix_version: '', // 防止 apisix enable_server_tokens = false 导致无法获取准确版本号而出错
   self_apisix_host: '',
-  route_priority: 999,
+  apisix_api_prefix: "",
+  route_priority: 99,
   acme_mail: '',
   ding_ding_token: '',
   renew_day: 0,
@@ -41,6 +42,7 @@ function init() {
   config.apisix_token = f.apisix_token || ''
   config.apisix_version = f.apisix_version || '0.0.0'
   config.self_apisix_host = f.self_apisix_host || ''
+  config.apisix_api_prefix = f.apisix_api_prefix || 'apisix_acme'
   config.acme_mail = f.acme_mail || ''
   config.route_priority = f.route_priority === 0 ? 0 : Number(f.route_priority) || 999
   config.ding_ding_token = f.ding_ding_token || ''

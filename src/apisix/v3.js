@@ -29,7 +29,9 @@ async function sslList() {
       id: item.id,
       snis: item.snis,
       validity_start: item.validity_start,
-      validity_end: item.validity_end
+      validity_end: item.validity_end,
+      labels: item['labels'],
+      client: item['client'],
     })
   })
 

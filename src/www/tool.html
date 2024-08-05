@@ -48,11 +48,11 @@
           <input type="text" required v-model="state.domain" />
         </label>
         <label>
-          <span>ACME所需邮箱</span>
+          <span>邮箱</span>
           <input type="text" v-model="state.acmeMail" />
         </label>
         <label>
-          <span>是否强制提交(否则先检验本地缓存)</span>
+          <span>强制提交</span>
           <input type="checkbox" v-model="state.force" />
         </label>
         <input type="submit" :value="state.loading?'请求中':'提交'" :disabled="state.loading" />
@@ -68,7 +68,7 @@
         setup() {
           const state = reactive({
             loading: false,
-            url: location.origin + '/apisix_acme/task_create',
+            url: location.origin + location.pathname.replace("/tool.html", "") + '/task_create',
             verifyToken: localStorage.getItem('verifyToken'),
             domain: localStorage.getItem('domain'),
             acmeMail: localStorage.getItem('acmeMail'),
